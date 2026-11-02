@@ -14,7 +14,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: starter
-    healthCheckPath: /api/projects/current
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_PATH
         value: /data/editorial.db
