@@ -4,11 +4,11 @@
 
 ## Current phase
 
-**Implementation — M0–M5 complete; M6 not started**
+**Implementation — M0–M6 complete; M7 not started**
 
 ## Current milestone
 
-M5 — Draft generation + section regen (**complete**)
+M6 — Writing Assistant (**complete**)
 
 ## Completed
 
@@ -21,21 +21,22 @@ M5 — Draft generation + section regen (**complete**)
 - [x] **M3 — Source ingestion**
 - [x] **M4 — Research Assistant**
 - [x] **M5 — Draft generation + section regen**
+- [x] **M6 — Writing Assistant**
 
-### M0–M4
+### M0–M5
 
-See earlier verification logs in git history / prior PROGRESS snapshots. Summaries remain: foundation, SQLite project API, workspace shell, source ingest, and research briefs verified.
+See earlier verification logs in git history / prior PROGRESS snapshots.
 
-### M5 verification log
+### M6 verification log
 
 | Check | Result | Notes |
 |---|---|---|
-| Draft types + `workingPlainFromSections` + drafts repo | **Implemented** | Hydrate `draft` on `GET /api/projects/current` |
-| Gemini draft schema/prompts + `generateDraft` / `regenerateSection` | **Implemented** | Sources section deterministic; one repair retry |
-| `POST /api/draft/generate`, section PATCH + regenerate | **Implemented** | Modes `starter_draft` \| `outline_only`; snapshot set once on first starter |
-| Research angle select + DraftStage generate/edit/regen | **Implemented** | Analyze writing still disabled (M6) |
-| `npm test` | **Verified PASS** | 43 tests incl. draft keys, sources section, generate/regen/snapshot |
-| `npm run build` | **Verified PASS** | Draft routes registered |
+| Detectors (complex/passive/filler) + overlap + metrics | **Implemented** | Unit-tested offline (NFR-010) |
+| Analyze + suggestRewrites (Zod/Gemini) + snapshot-if-empty | **Implemented** | Cap 12 spans; pending replace |
+| Accept/reject with offset adjust + stale check | **Implemented** | End→start batch helper tested |
+| Writing APIs + Draft Analyze CTA + WritingStage UI | **Implemented** | Highlights, compare, metrics rail |
+| `npm test` | **Verified PASS** | 64 tests |
+| `npm run build` | **Verified PASS** | Writing routes registered |
 | Live Gemini end-to-end with real API key | **Not verified** | Requires `GEMINI_API_KEY` + `GEMINI_MODEL` in local `.env` |
 
 ## In progress
@@ -44,13 +45,12 @@ See earlier verification logs in git history / prior PROGRESS snapshots. Summari
 
 ## Pending
 
-- [ ] M6 Writing
 - [ ] M7 Sample artifacts
 - [ ] M8 Deploy + README finalize
 
 ## Decisions awaiting approval
 
-None for M5.
+None for M6.
 
 ## Blockers
 

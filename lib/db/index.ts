@@ -36,8 +36,19 @@ export {
   type BriefLightUpdate,
 } from "./repos/research";
 export {
+  applyWorkingPlainAndSyncSections,
   getDraftByProject,
+  parseWorkingPlainToSections,
   replaceDraftGraph,
+  setOriginalSnapshotIfEmpty,
   updateDraftSection,
   type ReplaceDraftInput,
 } from "./repos/drafts";
+export {
+  clearPendingForDraft,
+  getSuggestionById,
+  listSuggestionsByDraft,
+  markSuggestionStatus,
+  replacePendingSuggestions,
+  type NewPendingSuggestion,
+} from "./repos/suggestions";

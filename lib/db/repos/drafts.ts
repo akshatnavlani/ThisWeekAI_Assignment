@@ -15,6 +15,7 @@ import {
 import type { AppDb } from "../client";
 import { newId, nowIso } from "../ids";
 import { draftSections, drafts } from "../schema";
+import { clearPendingForDraft } from "./suggestions";
 
 function toSectionDto(row: typeof draftSections.$inferSelect): DraftSectionDto {
   const key = row.sectionKey as DraftSectionKey;
@@ -155,6 +156,8 @@ export function replaceDraftGraph(
       .run();
   }
 
+  clearPendingForDraft(db, draftId);
+
   const dto = getDraftByProject(db, projectId);
   if (!dto) {
     throw new Error("Failed to load draft after replace");
@@ -204,6 +207,122 @@ export function updateDraftSection(
 
   db.update(drafts)
     .set({ workingPlain, updatedAt: now })
+    .where(eq(drafts.id, draft.id))
+    .run();
+
+  clearPendingForDraft(db, draft.id);
+
+  return getDraftByProject(db, projectId);
+}
+
+export function setOriginalSnapshotIfEmpty(
+  db: AppDb,
+  draftId: string,
+  plain: string,
+): void {
+  const rows = db
+    .select()
+    .from(drafts)
+    .where(eq(drafts.id, draftId))
+    .limit(1)
+    .all();
+  const row = rows[0];
+  if (!row || row.originalSnapshot) return;
+  db.update(drafts)
+    .set({ originalSnapshot: plain, updatedAt: nowIso() })
+    .where(eq(drafts.id, draftId))
+    .run();
+}
+
+/**
+ * Parse working_plain built by workingPlainFromSections back into section contents.
+ * Expects `## {title}\n\n{content}` blocks in DRAFT_SECTION_KEYS order.
+ */
+export function parseWorkingPlainToSections(
+  plain: string,
+): Array<{ key: DraftSectionKey; content: string }> {
+  const titles = DRAFT_SECTION_KEYS.map((key) => ({
+    key,
+    title: DRAFT_SECTION_TITLES[key],
+  }));
+
+  const contents: Array<{ key: DraftSectionKey; content: string }> =
+    DRAFT_SECTION_KEYS.map((key) => ({ key, content: "" }));
+
+  for (let i = 0; i < titles.length; i++) {
+    const heading = `## ${titles[i]!.title}\n\n`;
+    const start = plain.indexOf(heading);
+    if (start < 0) continue;
+    const contentStart = start + heading.length;
+    let contentEnd = plain.length;
+    for (let j = i + 1; j < titles.length; j++) {
+      const nextHeading = `\n\n## ${titles[j]!.title}\n\n`;
+      const idx = plain.indexOf(nextHeading, contentStart);
+      if (idx >= 0) {
+        contentEnd = idx;
+        break;
+      }
+    }
+    contents[i] = {
+      key: titles[i]!.key,
+      content: plain.slice(contentStart, contentEnd),
+    };
+  }
+
+  return contents;
+}
+
+export function applyWorkingPlainAndSyncSections(
+  db: AppDb,
+  projectId: string,
+  nextPlain: string,
+): DraftDto | null {
+  const draft = getDraftByProject(db, projectId);
+  if (!draft) return null;
+
+  const parsed = parseWorkingPlainToSections(nextPlain);
+  const now = nowIso();
+
+  for (const section of parsed) {
+    const existing = db
+      .select()
+      .from(draftSections)
+      .where(eq(draftSections.draftId, draft.id))
+      .all()
+      .find((s) => s.sectionKey === section.key);
+
+    if (existing) {
+      db.update(draftSections)
+        .set({ content: section.content })
+        .where(eq(draftSections.id, existing.id))
+        .run();
+    } else {
+      db.insert(draftSections)
+        .values({
+          id: newId(),
+          draftId: draft.id,
+          sectionKey: section.key,
+          title: DRAFT_SECTION_TITLES[section.key],
+          content: section.content,
+          sortOrder: DRAFT_SECTION_SORT_ORDER[section.key],
+        })
+        .run();
+    }
+  }
+
+  // Rebuild canonical working_plain from sections for detector stability
+  const refreshed = getDraftByProject(db, projectId);
+  if (!refreshed) return null;
+  const canonical = workingPlainFromSections(
+    refreshed.sections.map((s) => ({
+      title: s.title,
+      content: s.content,
+      sortOrder: s.sortOrder,
+    })),
+  );
+
+  db.update(drafts)
+    .set({ workingPlain: canonical, updatedAt: now })
     .where(eq(drafts.id, draft.id))
     .run();
 

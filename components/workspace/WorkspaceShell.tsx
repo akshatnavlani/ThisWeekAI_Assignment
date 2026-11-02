@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { BriefDto } from "@/lib/types/brief";
 import type { DraftDto } from "@/lib/types/draft";
 import type { SourceDto } from "@/lib/types/source";
+import type { SuggestionDto, WritingMetrics } from "@/lib/types/writing";
 import {
   isProjectStage,
   type ProjectStage,
@@ -28,6 +29,7 @@ type ProjectPayload = {
   sources: SourceDto[];
   brief: BriefDto | null;
   draft: DraftDto | null;
+  suggestions?: SuggestionDto[];
 };
 
 type LoadState =
@@ -39,6 +41,8 @@ type LoadState =
       sources: SourceDto[];
       brief: BriefDto | null;
       draft: DraftDto | null;
+      suggestions: SuggestionDto[];
+      metrics: WritingMetrics | null;
     };
 
 type StagePanelProps = {
@@ -46,12 +50,18 @@ type StagePanelProps = {
   sources: SourceDto[];
   brief: BriefDto | null;
   draft: DraftDto | null;
+  suggestions: SuggestionDto[];
+  metrics: WritingMetrics | null;
+  writingBusy: boolean;
   selectedAngleId: string | null;
   onSelectedAngleIdChange: (angleId: string) => void;
   onSourcesChanged: () => Promise<void>;
   onGenerateBrief: () => Promise<void>;
   onContinueToDraft: () => void;
   onDraftChanged: (draft: DraftDto) => void;
+  onAnalyzeWriting: () => Promise<void>;
+  onAcceptSuggestion: (id: string) => Promise<void>;
+  onRejectSuggestion: (id: string) => Promise<void>;
 };
 
 function StagePanel({
@@ -59,12 +69,18 @@ function StagePanel({
   sources,
   brief,
   draft,
+  suggestions,
+  metrics,
+  writingBusy,
   selectedAngleId,
   onSelectedAngleIdChange,
   onSourcesChanged,
   onGenerateBrief,
   onContinueToDraft,
   onDraftChanged,
+  onAnalyzeWriting,
+  onAcceptSuggestion,
+  onRejectSuggestion,
 }: StagePanelProps) {
   switch (stage) {
     case "sources":
@@ -94,10 +110,21 @@ function StagePanel({
           selectedAngleId={selectedAngleId}
           onSelectedAngleIdChange={onSelectedAngleIdChange}
           onDraftChanged={onDraftChanged}
+          onAnalyzeWriting={onAnalyzeWriting}
         />
       );
     case "writing":
-      return <WritingStage />;
+      return (
+        <WritingStage
+          draft={draft}
+          suggestions={suggestions}
+          metrics={metrics}
+          busy={writingBusy}
+          onAnalyze={onAnalyzeWriting}
+          onAccept={onAcceptSuggestion}
+          onReject={onRejectSuggestion}
+        />
+      );
   }
 }
 
@@ -107,6 +134,7 @@ export function WorkspaceShell() {
   const [selectedAngleId, setSelectedAngleId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [writingBusy, setWritingBusy] = useState(false);
 
   const fetchPayload = useCallback(async () => {
     const res = await fetch("/api/projects/current");
@@ -131,6 +159,8 @@ export function WorkspaceShell() {
         sources: data.sources ?? [],
         brief: data.brief ?? null,
         draft: data.draft ?? null,
+        suggestions: data.suggestions ?? [],
+        metrics: null,
       });
       if (data.draft?.selectedAngleId) {
         setSelectedAngleId(data.draft.selectedAngleId);
@@ -148,23 +178,28 @@ export function WorkspaceShell() {
   const refreshProject = useCallback(async () => {
     try {
       const data = await fetchPayload();
-      setLoadState((prev) =>
-        prev.status === "ready"
-          ? {
-              ...prev,
-              project: data.project,
-              sources: data.sources ?? [],
-              brief: data.brief ?? null,
-              draft: data.draft ?? null,
-            }
-          : {
-              status: "ready",
-              project: data.project,
-              sources: data.sources ?? [],
-              brief: data.brief ?? null,
-              draft: data.draft ?? null,
-            },
-      );
+      setLoadState((prev) => {
+        const suggestions = data.suggestions ?? [];
+        if (prev.status === "ready") {
+          return {
+            ...prev,
+            project: data.project,
+            sources: data.sources ?? [],
+            brief: data.brief ?? null,
+            draft: data.draft ?? null,
+            suggestions,
+          };
+        }
+        return {
+          status: "ready",
+          project: data.project,
+          sources: data.sources ?? [],
+          brief: data.brief ?? null,
+          draft: data.draft ?? null,
+          suggestions,
+          metrics: null,
+        };
+      });
       if (data.draft?.selectedAngleId) {
         setSelectedAngleId(data.draft.selectedAngleId);
       }
@@ -224,11 +259,86 @@ export function WorkspaceShell() {
 
   const onDraftChanged = (draft: DraftDto) => {
     setLoadState((prev) =>
-      prev.status === "ready" ? { ...prev, draft } : prev,
+      prev.status === "ready"
+        ? { ...prev, draft, suggestions: [] }
+        : prev,
     );
     if (draft.selectedAngleId) {
       setSelectedAngleId(draft.selectedAngleId);
     }
+  };
+
+  const analyzeWriting = async () => {
+    setWritingBusy(true);
+    setActionError(null);
+    try {
+      const res = await fetch("/api/writing/analyze", { method: "POST" });
+      const data = (await res.json()) as {
+        error?: { message?: string };
+        draft?: DraftDto;
+        suggestions?: SuggestionDto[];
+        metrics?: WritingMetrics;
+      };
+      if (!res.ok) {
+        throw new Error(data.error?.message ?? `Analyze failed (${res.status})`);
+      }
+      setLoadState((prev) =>
+        prev.status === "ready"
+          ? {
+              ...prev,
+              draft: data.draft ?? prev.draft,
+              suggestions: data.suggestions ?? [],
+              metrics: data.metrics ?? null,
+            }
+          : prev,
+      );
+      setStage("writing");
+    } finally {
+      setWritingBusy(false);
+    }
+  };
+
+  const acceptSuggestion = async (id: string) => {
+    const res = await fetch(`/api/writing/suggestions/${id}/accept`, {
+      method: "POST",
+    });
+    const data = (await res.json()) as {
+      error?: { message?: string };
+      draft?: DraftDto;
+      suggestions?: SuggestionDto[];
+      metrics?: WritingMetrics;
+    };
+    if (!res.ok) {
+      throw new Error(data.error?.message ?? `Accept failed (${res.status})`);
+    }
+    setLoadState((prev) =>
+      prev.status === "ready"
+        ? {
+            ...prev,
+            draft: data.draft ?? prev.draft,
+            suggestions: data.suggestions ?? prev.suggestions,
+            metrics: data.metrics ?? prev.metrics,
+          }
+        : prev,
+    );
+  };
+
+  const rejectSuggestion = async (id: string) => {
+    const res = await fetch(`/api/writing/suggestions/${id}/reject`, {
+      method: "POST",
+    });
+    const data = (await res.json()) as {
+      error?: { message?: string };
+      suggestions?: SuggestionDto[];
+    };
+    if (!res.ok) {
+      throw new Error(data.error?.message ?? `Reject failed (${res.status})`);
+    }
+    setLoadState((prev) =>
+      prev.status === "ready"
+        ? { ...prev, suggestions: data.suggestions ?? prev.suggestions }
+        : prev,
+    );
   };
 
   return (
@@ -310,6 +420,9 @@ export function WorkspaceShell() {
               sources={loadState.sources}
               brief={loadState.brief}
               draft={loadState.draft}
+              suggestions={loadState.suggestions}
+              metrics={loadState.metrics}
+              writingBusy={writingBusy}
               selectedAngleId={selectedAngleId}
               onSelectedAngleIdChange={setSelectedAngleId}
               onSourcesChanged={refreshProject}
@@ -318,6 +431,9 @@ export function WorkspaceShell() {
                 void selectStage("draft");
               }}
               onDraftChanged={onDraftChanged}
+              onAnalyzeWriting={analyzeWriting}
+              onAcceptSuggestion={acceptSuggestion}
+              onRejectSuggestion={rejectSuggestion}
             />
           </div>
         )}

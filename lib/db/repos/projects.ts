@@ -1,12 +1,14 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { BriefDto } from "@/lib/types/brief";
 import type { DraftDto } from "@/lib/types/draft";
+import type { SuggestionDto } from "@/lib/types/writing";
 import type { AppDb } from "../client";
 import { newId, nowIso } from "../ids";
 import { drafts, projects, writingSuggestions } from "../schema";
 import { getDraftByProject } from "./drafts";
 import { getBriefByProject } from "./research";
 import { listSourcesByProject, type SourceDto } from "./sources";
+import { listSuggestionsByDraft } from "./suggestions";
 
 export type ProjectRow = typeof projects.$inferSelect;
 
@@ -29,6 +31,7 @@ export type CurrentProjectPayload = {
   sources: SourceDto[];
   brief: BriefDto | null;
   draft: DraftDto | null;
+  suggestions: SuggestionDto[];
   suggestionsSummary: SuggestionsSummary;
 };
 
@@ -141,11 +144,13 @@ export function loadSuggestionsSummary(
 
 export function loadCurrentProjectPayload(db: AppDb): CurrentProjectPayload {
   const project = getOrCreateCurrent(db);
+  const draft = getDraftByProject(db, project.id);
   return {
     project,
     sources: listSourcesByProject(db, project.id),
     brief: getBriefByProject(db, project.id),
-    draft: getDraftByProject(db, project.id),
+    draft,
+    suggestions: draft ? listSuggestionsByDraft(db, draft.id) : [],
     suggestionsSummary: loadSuggestionsSummary(db, project.id),
   };
 }

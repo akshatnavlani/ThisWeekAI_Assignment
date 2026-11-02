@@ -16,6 +16,7 @@ type DraftStageProps = {
   selectedAngleId: string | null;
   onSelectedAngleIdChange: (angleId: string) => void;
   onDraftChanged: (draft: DraftDto) => void;
+  onAnalyzeWriting: () => Promise<void>;
 };
 
 function wordCount(text: string): number {
@@ -30,6 +31,7 @@ export function DraftStage({
   selectedAngleId,
   onSelectedAngleIdChange,
   onDraftChanged,
+  onAnalyzeWriting,
 }: DraftStageProps) {
   const [mode, setMode] = useState<Extract<DraftMode, "starter_draft" | "outline_only">>(
     draft?.mode === "outline_only" ? "outline_only" : "starter_draft",
@@ -37,6 +39,7 @@ export function DraftStage({
   const [angleOverride, setAngleOverride] = useState("");
   const [sectionDrafts, setSectionDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [regenKey, setRegenKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -381,18 +384,36 @@ export function DraftStage({
         <div>
           <button
             type="button"
-            disabled
-            className="bg-accent/40 text-on-primary"
+            disabled={
+              busy ||
+              analyzing ||
+              !draft ||
+              !draft.workingPlain.trim()
+            }
+            onClick={() => {
+              setError(null);
+              setAnalyzing(true);
+              void onAnalyzeWriting()
+                .catch((err: unknown) => {
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : "Analyze failed",
+                  );
+                })
+                .finally(() => setAnalyzing(false));
+            }}
+            className="cursor-pointer bg-accent text-on-primary disabled:cursor-not-allowed disabled:bg-accent/40"
             style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
           >
-            Analyze writing
+            {analyzing ? "Analyzing…" : "Analyze writing"}
           </button>
           <p
             className="text-muted-foreground"
             style={{ margin: "var(--space-sm) 0 0", fontSize: "0.8125rem" }}
           >
-            Writing assist unlocks in M6. Section regenerate replaces a whole
-            section; suggestions will patch spans.
+            Analyze opens Writing assist with span suggestions. Section
+            regenerate replaces a whole section — a different tool.
           </p>
         </div>
       </div>

@@ -5,7 +5,7 @@ Walkthrough README for the [FDE Intern Take Home Assignment](./FDE%20Intern%20Ta
 | Status | Detail |
 |---|---|
 | **Plan** | Approved (2026-11-02) |
-| **Application code** | **M0–M5 verified** (through draft generate / section regen APIs + UI; Gemini live call optional). M6–M8 not started. |
+| **Application code** | **M0–M6 verified** (through writing analyze / accept-reject APIs + UI; Gemini live call optional). M7–M8 not started. |
 | **Screenshots / live URL** | Placeholders until product flows exist and are captured |
 
 ---
@@ -160,7 +160,7 @@ Sources (≥3 usable)
 | Mixed source ingest (URL + paste; optional X; SSRF-safe) | **Verified (M3)** |
 | Research brief + evidence attribution | **Verified (M4)** — unit/mocked; live Gemini optional |
 | Starter draft / outline + section regen | **Verified (M5)** — unit/mocked; live Gemini optional |
-| Writing Assistant (3 checks, accept/reject, metrics) | Planned (M6) |
+| Writing Assistant (3 checks, accept/reject, metrics) | **Verified (M6)** — unit/mocked; live Gemini optional |
 | Sample editorial + before/after artifacts | Planned (M7) |
 | Free-tier self-host | Planned (M8) |
 
@@ -190,7 +190,7 @@ Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHE
 
 ## Startup / Setup Guide
 
-> **Honesty note:** M0–M5 verified on 2026-11-03: install/test/build, project/sources/research/draft APIs, workspace shell, ingest, brief, and draft generate/section regen (mocked Gemini in tests) **PASS**. Live Gemini generate was **not** run in CI — set `GEMINI_API_KEY` + `GEMINI_MODEL` locally to try it. Writing assist is **not** implemented yet (M6). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
+> **Honesty note:** M0–M6 verified on 2026-11-03: install/test/build, project/sources/research/draft/writing APIs, workspace shell, ingest, brief, draft generate/section regen, and writing analyze/accept-reject (mocked Gemini in tests) **PASS**. Live Gemini generate was **not** run in CI — set `GEMINI_API_KEY` + `GEMINI_MODEL` locally to try it. Sample editorial artifacts and deploy are **not** done yet (M7–M8). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
 
 ### Prerequisites (new machine)
 

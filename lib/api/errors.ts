@@ -10,6 +10,8 @@ export type ApiErrorCode =
   | "NEEDS_CONTENT"
   | "NEEDS_BRIEF"
   | "NEEDS_DRAFT"
+  | "EMPTY_DRAFT"
+  | "STALE_SUGGESTION"
   | "LLM_RATE_LIMIT"
   | "LLM_OUTPUT_INVALID"
   | "LLM_SETUP"
