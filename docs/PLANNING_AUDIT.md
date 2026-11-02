@@ -39,7 +39,7 @@
 | Item | Type | Impact |
 |---|---|---|
 | Exact Gemini model ID | Assumption | Set via `GEMINI_MODEL` at setup; verify in AI Studio |
-| ORM choice (Drizzle vs raw SQL) | Non-critical | Decide in M1; prefer thin Drizzle or better-sqlite3 |
+| ORM choice (Drizzle vs raw SQL) | **Resolved (ADR-014)** | Thin Drizzle + better-sqlite3; migrate-on-open |
 | Soft-block delete of cited sources | Assumption | Prefer warn+block if cited; document |
 | Original snapshot never resets in MVP | Assumption | Compare always vs first snapshot |
 | Free-tier host final choice | Deferred to M8 | Render/Railway/Fly — pick based on signup friction |

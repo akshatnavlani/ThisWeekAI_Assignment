@@ -1,33 +1,41 @@
 # Project Progress
 
-**Last updated:** 2026-11-02
+**Last updated:** 2026-11-03
 
 ## Current phase
 
-**Implementation — M0 complete; M1 not started**
+**Implementation — M0–M4 complete; M5 not started**
 
 ## Current milestone
 
-M0 — Project foundation (**complete**)
+M4 — Research Assistant (**complete**)
 
 ## Completed
 
 - [x] Phase 0–3 planning
-- [x] ADR-001 … ADR-013
+- [x] ADR-001 … ADR-014
 - [x] README submission shape (ADR-012)
 - [x] **M0 — Project foundation**
+- [x] **M1 — Database + project persistence**
+- [x] **M2 — Workspace UI shell**
+- [x] **M3 — Source ingestion**
+- [x] **M4 — Research Assistant**
 
-### M0 verification log
+### M0–M3
+
+See earlier verification logs in git history / prior PROGRESS snapshots. Summaries remain: foundation, SQLite project API, workspace shell, and source ingest verified.
+
+### M4 verification log
 
 | Check | Result | Notes |
 |---|---|---|
-| Scaffold Next.js App Router + TS + Tailwind at repo root | **Implemented** | Merged from temp `create-next-app` without clobbering docs |
-| Design tokens + Libre Bodoni / Public Sans / JetBrains Mono | **Implemented** | `app/globals.css`, `app/layout.tsx` |
-| Empty editorial shell UI | **Implemented** | `app/page.tsx` — no product features |
-| `.env.example`, `.gitignore`, `data/.gitkeep` | **Implemented** | No secrets committed |
-| `npm install` | **Verified PASS** | Node v24.22.1 / npm 11.19.1 |
-| `npm run build` | **Verified PASS** | Next.js 16.4.4 |
-| `npm run dev` smoke (`http://localhost:3000`) | **Verified PASS** | Shell HTML includes product name + stage placeholder; font CSS vars present |
+| Gemini client + brief prompt + Zod schema | **Implemented** | `lib/llm/**`; one repair retry |
+| `validateSourceIds` + `generateBrief` + research repo | **Implemented** | Replace angles/claims on full generate |
+| `POST /api/research/generate`, `PATCH /api/research/brief` | **Implemented** | Gate `NEEDS_SOURCES`; hydrate `brief` on project GET |
+| Sources Generate + Research UI (edit/regen/continue) | **Implemented** | Continue → draft stage only (no draft API) |
+| `npm test` | **Verified PASS** | 28 tests incl. schema, sourceIds, mocked generate/repair/gate |
+| `npm run build` | **Verified PASS** | Research routes registered |
+| Live Gemini end-to-end with real API key | **Not verified** | Requires `GEMINI_API_KEY` + `GEMINI_MODEL` in local `.env` |
 
 ## In progress
 
@@ -35,10 +43,6 @@ M0 — Project foundation (**complete**)
 
 ## Pending
 
-- [ ] M1 DB + Project API
-- [ ] M2 UI shell
-- [ ] M3 Ingestion
-- [ ] M4 Research
 - [ ] M5 Draft
 - [ ] M6 Writing
 - [ ] M7 Sample artifacts
@@ -46,7 +50,7 @@ M0 — Project foundation (**complete**)
 
 ## Decisions awaiting approval
 
-None for M0.
+None for M4.
 
 ## Blockers
 
@@ -54,8 +58,8 @@ None.
 
 ## Confirmed decisions
 
-ADR-001 … ADR-013 (see `docs/DECISIONS.md`)
+ADR-001 … ADR-014 (see `docs/DECISIONS.md`)
 
 ## Explicit assumptions
 
-See `docs/PLANNING_AUDIT.md` (Gemini model env, ORM choice in M1, original snapshot policy, host pick in M8).
+See `docs/PLANNING_AUDIT.md`. ORM choice resolved by ADR-014.

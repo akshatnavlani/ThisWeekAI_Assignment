@@ -5,8 +5,8 @@ Walkthrough README for the [FDE Intern Take Home Assignment](./FDE%20Intern%20Ta
 | Status | Detail |
 |---|---|
 | **Plan** | Approved (2026-11-02) |
-| **Application code** | **M0 foundation verified** (empty editorial shell). M1–M8 not started. |
-| **Screenshots / live URL** | Placeholders until product UI exists and is verified |
+| **Application code** | **M0–M4 verified** (through research brief APIs + UI; Gemini live call optional). M5–M8 not started. |
+| **Screenshots / live URL** | Placeholders until product flows exist and are captured |
 
 ---
 
@@ -155,8 +155,10 @@ Sources (≥3 usable)
 | Feature | Status |
 |---|---|
 | Next.js scaffold + design tokens + empty shell | **Verified (M0)** |
-| Mixed source ingest (URL + paste; optional X) | Planned (M3) |
-| Research brief + evidence attribution | Planned (M4) |
+| SQLite schema + `GET`/`PATCH` `/api/projects/current` | **Verified (M1)** |
+| Navigable workspace shell (stage stepper + placeholders) | **Verified (M2)** |
+| Mixed source ingest (URL + paste; optional X; SSRF-safe) | **Verified (M3)** |
+| Research brief + evidence attribution | **Verified (M4)** — unit/mocked; live Gemini optional |
 | Starter draft / outline + section regen | Planned (M5) |
 | Writing Assistant (3 checks, accept/reject, metrics) | Planned (M6) |
 | Sample editorial + before/after artifacts | Planned (M7) |
@@ -188,7 +190,7 @@ Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHE
 
 ## Startup / Setup Guide
 
-> **Honesty note:** M0 verified on 2026-11-02: `npm install`, `npm run build`, and `npm run dev` (empty shell) **PASS**. Database bootstrap, APIs, and product stages are **not** implemented yet (M1+). Gemini/X env vars are unused until later milestones.
+> **Honesty note:** M0–M4 verified on 2026-11-03: install/test/build, project/sources APIs, workspace shell, ingest, and research generate/edit (mocked Gemini in tests) **PASS**. Live Gemini generate was **not** run in CI — set `GEMINI_API_KEY` + `GEMINI_MODEL` locally to try it. Draft generation and writing assist are **not** implemented yet (M5–M6). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
 
 ### Prerequisites (new machine)
 
@@ -240,7 +242,21 @@ npm run start
 
 ### 5. Database
 
-`DATABASE_PATH` defaults to `./data/editorial.db` (directory reserved via `data/.gitkeep`). **SQLite schema and auto-create land in M1** — not active in M0.
+`DATABASE_PATH` defaults to `./data/editorial.db`. On first DB open (e.g. `GET /api/projects/current`), Drizzle migrations under `drizzle/` apply automatically and a default project is bootstrapped if none exists. Do not commit `*.db` files.
+
+```bash
+# optional: regenerate SQL after schema edits
+npm run db:generate
+
+# unit/integration tests (temp SQLite files)
+npm test
+```
+
+Quick API check while `npm run dev` is running:
+
+```bash
+curl http://localhost:3000/api/projects/current
+```
 
 ### Troubleshooting (planned)
 

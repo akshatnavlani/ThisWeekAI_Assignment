@@ -688,3 +688,37 @@ Assignment evaluators need the README and engineering docs on GitHub (PRD §7 / 
 ### Approval
 
 Approved by product owner (user) on 2026-11-02 — **“I dont mind pushing the docs to the repo.”**
+
+---
+
+## ADR-014: Drizzle + better-sqlite3; project API from TECHNICAL_REQUIREMENTS
+
+- **Decision ID:** ADR-014
+- **Date:** 2026-11-02
+- **Status:** Approved (implemented in M1)
+- **Phase:** M1 — Database + project persistence
+
+### Context
+
+PLANNING_AUDIT deferred ORM choice (Drizzle vs raw better-sqlite3) to M1. IMPLEMENTATION_PLAN M1 shorthand mentioned `GET/POST /api/projects`, while TECHNICAL_REQUIREMENTS §7 specifies `GET` / `PATCH` `/api/projects/current`.
+
+### Decision
+
+1. **Persistence stack:** `better-sqlite3` + thin **Drizzle ORM** + committed `drizzle-kit` SQL migrations under `drizzle/`.
+2. **Migrate on open:** `getDb()` applies pending migrations so local setup does not require a separate migrate step for MVP.
+3. **API:** Follow TECHNICAL_REQUIREMENTS — `GET` / `PATCH` `/api/projects/current` (bootstrap default project; update title/stage).
+4. **IDs:** `crypto.randomUUID()`.
+5. **Active project:** Most recently `updated_at`, else insert default (`Untitled editorial`, stage `sources`).
+6. **Schema:** Full SCHEMA.md table graph created in M1; only the projects repository and API are wired (sources/brief/draft/writing repos later).
+
+### Rationale
+
+- Typed schema stays close to SCHEMA.md without a heavy repository framework.
+- TECH_REQ is the API contract authority for route shapes.
+- Migrate-on-open keeps README local setup short.
+
+### Consequences
+
+- Route handlers must stay on the Node.js runtime (native `better-sqlite3`); not Edge.
+- `next.config` lists `better-sqlite3` in `serverExternalPackages`.
+- SQLite DB files remain gitignored; never commit `*.db`.
