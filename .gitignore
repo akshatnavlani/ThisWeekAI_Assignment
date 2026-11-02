@@ -47,6 +47,9 @@ yarn-error.log*
 *.db-wal
 *.db-shm
 
+# local UI mockups / reference screenshots (not shipped)
+/UI_Example/
+
 # vercel / deploy leftovers
 .vercel
 
