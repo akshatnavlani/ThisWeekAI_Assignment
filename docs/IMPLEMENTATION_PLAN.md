@@ -172,16 +172,16 @@ flowchart TD
 | | |
 |---|---|
 | **ID** | M8 |
-| **Objective** | Free-tier deploy after local E2E; complete README |
-| **Scope** | Host with persistent disk; env config; troubleshooting; AI disclosure |
-| **Tasks** | Deploy; verify; fill live URL placeholder; honesty about limitations |
-| **Files** | `README.md`, host config |
+| **Objective** | Docker + SQLite deploy path after local E2E; complete README |
+| **Scope** | Dockerfile / Compose; Render blueprint + persistent disk; env; troubleshooting; honesty on live URL |
+| **Tasks** | Containerize; `docker compose` smoke; `render.yaml`; fill live URL or document blocker; ADR-015 |
+| **Files** | `Dockerfile`, `.dockerignore`, `docker-compose.yml`, `render.yaml`, `README.md`, `next.config.ts` (`output: "standalone"`), docs |
 | **Dependencies** | M7 |
-| **Deliverables** | Live link or documented blocker; excellent local setup |
-| **Tests** | Smoke on deployed URL if available |
-| **Acceptance** | NFR-006; ADR-006 |
-| **DoD** | README matches real commands tested |
-| **Risks** | R-10 |
+| **Deliverables** | Verified Docker local run; live Render URL **or** documented blocker; excellent local + Compose setup |
+| **Tests** | `docker compose up --build` + `GET /api/projects/current`; smoke on Render if available |
+| **Acceptance** | NFR-006; ADR-006; ADR-015 |
+| **DoD** | README matches real commands tested; no secrets/`*.db` in image or git |
+| **Risks** | R-10 (mitigated by volume; free-tier disk eligibility may block public URL) |
 
 ---
 

@@ -5,8 +5,8 @@ Walkthrough README for the [FDE Intern Take Home Assignment](./FDE%20Intern%20Ta
 | Status | Detail |
 |---|---|
 | **Plan** | Approved (2026-11-02) |
-| **Application code** | **M0–M7 verified** (including live Gemini sample editorial + before/after). M8 deploy not started. |
-| **Screenshots / live URL** | Placeholders until product flows exist and are captured |
+| **Application code** | **M0–M8** — product flows verified through M7; M8 Docker + SQLite deploy path verified locally |
+| **Screenshots / live URL** | UI via local/Compose; **public Render URL BLOCKED** pending Render account + persistent-disk plan (see Self-hosting) |
 
 ---
 
@@ -35,9 +35,9 @@ Per assignment **§10 Submissions**:
 
 | Item | Value |
 |---|---|
-| **Solution Live Link** | `_TBD after M8 deploy — placeholder_` |
+| **Solution Live Link** | **BLOCKED (M8)** — no Render account/credentials in this environment; reproducible path is Docker Compose (below). Paste a Render URL here after blueprint deploy. |
 | **GitHub Link** | [akshatnavlani/ThisWeekAI_Assignment](https://github.com/akshatnavlani/ThisWeekAI_Assignment) |
-| **This README** | Product decisions, setup, self-hosting, screenshots |
+| **This README** | Product decisions, setup, Docker/Render self-hosting, screenshots |
 
 Also required by **§7 Deliverables** (linked below): working app or local setup, product/engineering note, sample editorial, before/after writing example.
 
@@ -94,7 +94,7 @@ Sources (≥3 usable)
 | LLM | **Gemini only** (ADR-010) | Keys available; structured output; Groq deferred (no dual-provider abstraction) |
 | App stack | **Next.js + Tailwind** (ADR-010) | One TypeScript monolith; fast delivery |
 | UI design | **ui-ux-pro-max** curated system (ADR-010) | Light editorial UI; Libre Bodoni + Public Sans; no dark/glow/Inter cliché |
-| Deploy | **Local first, then free PaaS** (ADR-006) | Avoid Vercel+file SQLite; use disk-backed host later |
+| Deploy | **Docker + SQLite volume** (ADR-006, ADR-015) | Same image locally (Compose) and on Render (+ disk); avoid Vercel+file SQLite |
 | Explicitly out | Auth, cloud multi-project, brief section regen, multi-agent frameworks, jargon-as-4th-check | Keeps a small tool done well |
 
 ### How we’d measure usefulness
@@ -162,7 +162,7 @@ Sources (≥3 usable)
 | Starter draft / outline + section regen | **Verified (M5)** — unit/mocked; live Gemini optional |
 | Writing Assistant (3 checks, accept/reject, metrics) | **Verified (M6)** — unit/mocked; live Gemini optional |
 | Sample editorial + before/after artifacts | **Verified (M7)** — live Gemini J1–J3 capture |
-| Free-tier self-host | Planned (M8) |
+| Docker + SQLite self-host | **Verified (M8)** Compose smoke; public Render URL blocked without account/disk |
 
 Only mark **Implemented** after the matching milestone is tested and verified (`docs/PROGRESS.md`).
 
@@ -177,7 +177,7 @@ Only mark **Implemented** after the matching milestone is tested and verified (`
 | LLM | Gemini Flash-class | Groq dual-provider | Quality + structured JSON; less complexity |
 | Ingestion | Fetch + Readability | Headless browser / Firecrawl | Enough for MVP + paste fallback |
 | UI | Tailwind + design-system tokens | Heavy component kits | Editorial, not dashboard |
-| Deploy | Render / Railway / Fly (+ volume) | Vercel + file SQLite | Persistent disk |
+| Deploy | Docker → Render (+ `/data` disk) | Vercel + file SQLite; cloud Postgres for MVP | ADR-015; keep SQLite |
 
 Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHEMA.md`](./docs/SCHEMA.md)
 
@@ -190,11 +190,12 @@ Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHE
 
 ## Startup / Setup Guide
 
-> **Honesty note:** M0–M7 verified on 2026-11-03: install/test/build plus a **live** Gemini J1–J3 capture for sample editorial / before-after docs **PASS**. Use a Flash-class `GEMINI_MODEL` that supports `generateContent` (not Live/WebSocket-only IDs). Deploy / live URL is **not** done yet (M8). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
+> **Honesty note:** M0–M7 verified on 2026-11-03 (install/test/build + live Gemini J1–J3). M8 (2026-11-03): `docker compose build` + `GET /api/projects/current` against the container **PASS**; public Render live URL **BLOCKED** (no Render login in this environment / persistent disk needs an eligible plan). Use a Flash-class `GEMINI_MODEL` that supports `generateContent` (not Live/WebSocket-only IDs). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
 
 ### Prerequisites (new machine)
 
-- **Node.js 20+** (verified with Node 24 / npm)  
+- **Node.js 20+** (verified with Node 24 / npm) — for local `npm run dev`  
+- **Docker Desktop** (or Docker Engine + Compose v2) — for the M8 deploy path  
 - **npm** (lockfile: `package-lock.json`)  
 - **Google AI Studio** API key ([Gemini](https://aistudio.google.com/)) — needed from M4 onward  
 - Git  
@@ -273,26 +274,47 @@ curl http://localhost:3000/api/projects/current
 
 ## Self-hosting
 
-Goal (ADR-006): **local E2E first**, then a free-tier host with a **persistent disk** for SQLite.
+Goal (ADR-006 / ADR-015): **local E2E first**, then the **same Docker image** on Render with a **persistent disk** for SQLite. Backend remains Next.js `app/api/**` — Docker only packages that process.
 
 **Not recommended:** Vercel serverless + local SQLite file (ephemeral filesystem — data won’t stick).
 
-### Recommended approach (Render / Railway / Fly)
+### Local Docker (verified M8)
 
-1. Complete local setup and verify the full workflow.  
-2. Create a **Node web service** on Render, Railway, or Fly.  
-3. Attach a **persistent volume**; set `DATABASE_PATH` to a path on that volume (e.g. `/data/editorial.db`).  
-4. Set env vars in the host dashboard: `GEMINI_API_KEY`, `GEMINI_MODEL`, optional `X_BEARER_TOKEN`.  
-5. Build/start commands (intended):
+Requires a `.env` with at least `GEMINI_API_KEY` and a Flash-class `GEMINI_MODEL` for AI routes. Compose forces `DATABASE_PATH=/data/editorial.db` onto the `./data` bind mount.
 
 ```bash
-npm install
-npm run build
-npm run start
+docker compose up --build
+# App: http://localhost:3000  (or set PORT=3005 if 3000 is taken)
+# Smoke: GET http://localhost:3000/api/projects/current
 ```
 
-6. Open the public URL; smoke-test: add sources → brief → draft → analyze.  
-7. Put the URL in [Submission links](#submission-links).
+Stop with `docker compose down`. The SQLite file persists under `./data/` (gitignored).
+
+**Verified (2026-11-03):** image build **PASS**; container `GET /api/projects/current` → **200**.
+
+### Render (Docker + disk)
+
+Blueprint: [`render.yaml`](./render.yaml).
+
+1. Push this repo to GitHub.  
+2. In Render: **New → Blueprint** (or Web Service → Docker) from the repo.  
+3. Confirm **persistent disk** mount `/data` (required for SQLite). Free/hobby plans may not allow disks — use an eligible plan or stay on Compose (ADR-006).  
+4. Set env in the dashboard: `GEMINI_API_KEY`, `GEMINI_MODEL` (Flash-class), optional `X_BEARER_TOKEN`. `DATABASE_PATH=/data/editorial.db` is set in the blueprint.  
+5. Deploy **one** instance only (SQLite is not multi-replica safe).  
+6. Smoke-test: `GET /api/projects/current`, then sources → brief → draft → analyze.  
+7. Put the public URL in [Submission links](#submission-links).
+
+**Live URL status:** **BLOCKED** in this implementation environment (no Render credentials). Config + local Compose path are complete.
+
+### Troubleshooting (Docker / Render)
+
+| Symptom | What to try |
+|---|---|
+| Port 3000 in use | `PORT=3005 docker compose up` (maps host 3005 → container 3000) |
+| `better-sqlite3` / native errors | Rebuild **inside** Linux image (`docker compose build --no-cache`); never copy Windows `node_modules` into the image |
+| Empty / reset DB on host | Disk not mounted or wrong `DATABASE_PATH`; confirm `/data` volume |
+| Long Gemini requests time out | Host request timeout; retry; prefer Flash-class model; local Compose has fewer limits |
+| Health check fails | Ensure migrate-on-open can write `/data`; check Render logs |
 
 ### Security note for public demos
 
@@ -300,7 +322,7 @@ MVP has **no auth**. Anyone with the URL can use the workspace and your server-s
 
 ### Alternative: Vercel + Turso
 
-Only if you insist on Vercel: move persistence to **Turso/libSQL** (or similar) instead of a local file. That is a deliberate extra dependency — not the default plan.
+Only if you insist on Vercel: move persistence to **Turso/libSQL** (or similar) instead of a local file. That is a deliberate extra dependency — not the default plan (ADR-015 keeps SQLite + Docker).
 
 ---
 

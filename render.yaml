@@ -1,0 +1,34 @@
+# Blueprint for Render Docker + SQLite on a persistent disk.
+# Single instance only — SQLite is not safe across multiple web replicas.
+#
+# Notes:
+# - Persistent disks are not available on every Render plan. If disk attach
+#   fails on free tier, use a paid/eligible plan or keep Docker Compose local
+#   (ADR-006: reproducible local setup is acceptable).
+# - Set GEMINI_API_KEY / GEMINI_MODEL in the dashboard (sync: false below).
+
+services:
+  - type: web
+    name: this-week-in-ai-editorial
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /api/projects/current
+    envVars:
+      - key: DATABASE_PATH
+        value: /data/editorial.db
+      - key: NODE_ENV
+        value: production
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        sync: false
+      - key: X_BEARER_TOKEN
+        sync: false
+    disk:
+      name: editorial-sqlite
+      mountPath: /data
+      sizeGB: 1

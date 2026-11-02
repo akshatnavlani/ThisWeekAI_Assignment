@@ -4,16 +4,16 @@
 
 ## Current phase
 
-**Implementation — M0–M7 complete; M8 not started**
+**Implementation — M0–M8 complete**
 
 ## Current milestone
 
-M7 — E2E verification + sample editorial artifacts (**complete**)
+M8 — Docker + SQLite deploy (**complete**; public Render URL blocked)
 
 ## Completed
 
 - [x] Phase 0–3 planning
-- [x] ADR-001 … ADR-014
+- [x] ADR-001 … ADR-015
 - [x] README submission shape (ADR-012)
 - [x] **M0 — Project foundation**
 - [x] **M1 — Database + project persistence**
@@ -23,6 +23,7 @@ M7 — E2E verification + sample editorial artifacts (**complete**)
 - [x] **M5 — Draft generation + section regen**
 - [x] **M6 — Writing Assistant**
 - [x] **M7 — Sample artifacts + live E2E**
+- [x] **M8 — Docker + SQLite deploy path**
 
 ### M0–M6
 
@@ -47,26 +48,36 @@ See earlier verification logs in git history / prior PROGRESS snapshots.
 - https://developers.googleblog.com/en/gemini-15-flash-8b-is-now-generally-available-for-use/
 - https://www.anthropic.com/news/claude-3-5-sonnet
 
+### M8 verification log (2026-11-03)
+
+| Check | Result | Notes |
+|---|---|---|
+| `Dockerfile` / Compose / `render.yaml` | **PASS** | ADR-015; `next.config` `output: "standalone"` |
+| `docker compose build` | **PASS** | Linux rebuild of `better-sqlite3` |
+| Container smoke `GET /api/projects/current` | **PASS** | HTTP 200 on host port 3005 (3000 busy); DB on `./data` volume |
+| Public Render live URL | **BLOCKED** | No Render CLI/credentials; disk needs eligible plan — documented in README |
+| Secrets / `*.db` in git | **PASS** | Not committed; `.dockerignore` excludes `.env` and `data/` |
+
 ## In progress
 
 - (none)
 
 ## Pending
 
-- [ ] M8 Deploy + README finalize
+- (none for MVP milestones)
 
 ## Decisions awaiting approval
 
-None for M7.
+None.
 
 ## Blockers
 
-None remaining for M7. Note: default `.env` `GEMINI_MODEL=gemini-3.8-live-extended-thinking` does **not** support `generateContent`; use a Flash-class model for this app.
+- **Public Solution Live Link:** requires Render login + persistent-disk-capable plan. Docker Compose is the verified reproducible path (ADR-006).
 
 ## Confirmed decisions
 
-ADR-001 … ADR-014 (see `docs/DECISIONS.md`)
+ADR-001 … ADR-015 (see `docs/DECISIONS.md`)
 
 ## Explicit assumptions
 
-See `docs/PLANNING_AUDIT.md`. ORM choice resolved by ADR-014.
+See `docs/PLANNING_AUDIT.md`. ORM choice resolved by ADR-014. Deploy unit = Docker (ADR-015).

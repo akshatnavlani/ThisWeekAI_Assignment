@@ -222,12 +222,15 @@ Limits (initial): fetch timeout 10s; max response 1.5MB; block localhost/link-lo
 
 ```mermaid
 flowchart LR
-  Dev[Local Next.js + SQLite file] -->|E2E verified| Host[Render/Railway/Fly Node]
-  Host --> Disk[(Persistent volume SQLite)]
-  Host --> Gem[Gemini API]
+  Dev[Local_npm_or_Docker_Compose] -->|E2E verified| Host[Render_Docker_web]
+  Host --> Disk[(Persistent_volume_SQLite)]
+  Host --> Gem[Gemini_API]
 ```
 
-Vercel + file SQLite explicitly avoided (ADR-006/010).
+- **Unit of deploy:** Docker image of the Next.js process (UI + `app/api/**`) — ADR-015. No separate backend service.
+- **DB path in containers:** `DATABASE_PATH=/data/editorial.db` on a persistent volume / Compose bind mount.
+- **Blueprint:** `render.yaml` (Render) + `docker-compose.yml` (local).
+- Vercel + file SQLite explicitly avoided (ADR-006/010).
 
 ## 10. Testing architecture
 

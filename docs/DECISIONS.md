@@ -722,3 +722,30 @@ PLANNING_AUDIT deferred ORM choice (Drizzle vs raw better-sqlite3) to M1. IMPLEM
 - Route handlers must stay on the Node.js runtime (native `better-sqlite3`); not Edge.
 - `next.config` lists `better-sqlite3` in `serverExternalPackages`.
 - SQLite DB files remain gitignored; never commit `*.db`.
+
+---
+
+## ADR-015: Docker as the deploy unit (SQLite retained)
+
+- **Decision ID:** ADR-015
+- **Date:** 2026-11-03
+- **Status:** Approved (implemented in M8)
+- **Phase:** M8 — Deploy + README finalize
+
+### Context
+
+M8 needed a reproducible host path for the same Next.js App Router process (UI + `app/api/**`). File SQLite fails on ephemeral serverless filesystems (ADR-006 / ADR-010 / R-10). Supabase/Postgres was considered and rejected for this milestone in favor of keeping the existing Drizzle + `better-sqlite3` stack.
+
+### Decision
+
+1. **Keep SQLite** as the system of record (ADR-002 / ADR-011 / ADR-014 unchanged).
+2. **Package** the app as a multi-stage **Docker** image (`Dockerfile`, `.dockerignore`, `docker-compose.yml`) with `DATABASE_PATH=/data/editorial.db` on a mounted volume.
+3. **Host target:** Render Docker web service + persistent disk at `/data` (`render.yaml`). Single instance only.
+4. **Local parity:** `docker compose up --build` uses `./data:/data`.
+5. **Next.js:** `output: "standalone"` for a lean production image; native `better-sqlite3` is compiled inside the Linux build stages.
+
+### Consequences
+
+- No Postgres / async-repo rewrite in M8.
+- Public Render URL requires a Render account + a plan that allows persistent disks; if unavailable, Docker Compose remains the verified deploy path (ADR-006).
+- Never bake `.env` or `*.db` into the image.

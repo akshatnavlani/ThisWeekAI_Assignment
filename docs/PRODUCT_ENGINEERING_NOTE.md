@@ -37,7 +37,7 @@ Brief claims store `sourceIds`; validated against ready sources on generate. Dra
 **Another day of work**  
 1. Live Gemini smoke in CI with a Flash-class `generateContent` model.  
 2. Screenshot pack for README stages.  
-3. Free-tier deploy with persistent SQLite volume (M8).
+3. Docker + SQLite on a persistent volume (Compose verified; Render blueprint ready) (M8 / ADR-015).
 
 ## Editorial judgment
 
