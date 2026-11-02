@@ -62,7 +62,9 @@ export function createGeminiJsonGenerator(
       return text;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (/429|rate.?limit|quota/i.test(message)) {
+      if (
+        /429|rate.?limit|quota|503|high demand|Unavailable/i.test(message)
+      ) {
         throw new LlmRateLimitError(message);
       }
       throw err;

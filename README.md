@@ -5,7 +5,7 @@ Walkthrough README for the [FDE Intern Take Home Assignment](./FDE%20Intern%20Ta
 | Status | Detail |
 |---|---|
 | **Plan** | Approved (2026-11-02) |
-| **Application code** | **M0–M6 verified** (through writing analyze / accept-reject APIs + UI; Gemini live call optional). M7–M8 not started. |
+| **Application code** | **M0–M7 verified** (including live Gemini sample editorial + before/after). M8 deploy not started. |
 | **Screenshots / live URL** | Placeholders until product flows exist and are captured |
 
 ---
@@ -161,7 +161,7 @@ Sources (≥3 usable)
 | Research brief + evidence attribution | **Verified (M4)** — unit/mocked; live Gemini optional |
 | Starter draft / outline + section regen | **Verified (M5)** — unit/mocked; live Gemini optional |
 | Writing Assistant (3 checks, accept/reject, metrics) | **Verified (M6)** — unit/mocked; live Gemini optional |
-| Sample editorial + before/after artifacts | Planned (M7) |
+| Sample editorial + before/after artifacts | **Verified (M7)** — live Gemini J1–J3 capture |
 | Free-tier self-host | Planned (M8) |
 
 Only mark **Implemented** after the matching milestone is tested and verified (`docs/PROGRESS.md`).
@@ -190,7 +190,7 @@ Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHE
 
 ## Startup / Setup Guide
 
-> **Honesty note:** M0–M6 verified on 2026-11-03: install/test/build, project/sources/research/draft/writing APIs, workspace shell, ingest, brief, draft generate/section regen, and writing analyze/accept-reject (mocked Gemini in tests) **PASS**. Live Gemini generate was **not** run in CI — set `GEMINI_API_KEY` + `GEMINI_MODEL` locally to try it. Sample editorial artifacts and deploy are **not** done yet (M7–M8). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
+> **Honesty note:** M0–M7 verified on 2026-11-03: install/test/build plus a **live** Gemini J1–J3 capture for sample editorial / before-after docs **PASS**. Use a Flash-class `GEMINI_MODEL` that supports `generateContent` (not Live/WebSocket-only IDs). Deploy / live URL is **not** done yet (M8). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
 
 ### Prerequisites (new machine)
 
@@ -322,9 +322,9 @@ Mapped to PRD **§7** and **§10**:
 |---|---|
 | Working application | Local setup (above); live link TBD |
 | Source code + README | This repo |
-| Product & engineering note | `docs/PRODUCT_ENGINEERING_NOTE.md` — _planned M7_ (decisions also summarized here) |
-| Sample editorial (300–500 words) | `docs/sample-editorial.md` — _planned M7_ |
-| Before/after writing example | `docs/before-after-writing.md` — _planned M7_ |
+| Product & engineering note | [`docs/PRODUCT_ENGINEERING_NOTE.md`](./docs/PRODUCT_ENGINEERING_NOTE.md) |
+| Sample editorial (300–500 words) | [`docs/sample-editorial.md`](./docs/sample-editorial.md) |
+| Before/after writing example | [`docs/before-after-writing.md`](./docs/before-after-writing.md) |
 | Setup + env vars | [Startup / Setup Guide](#startup--setup-guide) |
 | Live link | [Submission links](#submission-links) |
 | GitHub link | [Submission links](#submission-links) |

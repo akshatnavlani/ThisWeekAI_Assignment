@@ -38,9 +38,10 @@ yarn-error.log*
 .env.production.local
 .env*.local
 
-# database
+# database + local capture artifacts
 /data/*.db
 /data/*.db-*
+/data/*.json
 *.db
 *.db-journal
 *.db-wal

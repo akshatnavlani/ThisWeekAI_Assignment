@@ -4,11 +4,11 @@
 
 ## Current phase
 
-**Implementation — M0–M6 complete; M7 not started**
+**Implementation — M0–M7 complete; M8 not started**
 
 ## Current milestone
 
-M6 — Writing Assistant (**complete**)
+M7 — E2E verification + sample editorial artifacts (**complete**)
 
 ## Completed
 
@@ -22,22 +22,30 @@ M6 — Writing Assistant (**complete**)
 - [x] **M4 — Research Assistant**
 - [x] **M5 — Draft generation + section regen**
 - [x] **M6 — Writing Assistant**
+- [x] **M7 — Sample artifacts + live E2E**
 
-### M0–M5
+### M0–M6
 
 See earlier verification logs in git history / prior PROGRESS snapshots.
 
-### M6 verification log
+### M7 verification log (2026-11-03)
 
 | Check | Result | Notes |
 |---|---|---|
-| Detectors (complex/passive/filler) + overlap + metrics | **Implemented** | Unit-tested offline (NFR-010) |
-| Analyze + suggestRewrites (Zod/Gemini) + snapshot-if-empty | **Implemented** | Cap 12 spans; pending replace |
-| Accept/reject with offset adjust + stale check | **Implemented** | End→start batch helper tested |
-| Writing APIs + Draft Analyze CTA + WritingStage UI | **Implemented** | Highlights, compare, metrics rail |
-| `npm test` | **Verified PASS** | 64 tests |
-| `npm run build` | **Verified PASS** | Writing routes registered |
-| Live Gemini end-to-end with real API key | **Not verified** | Requires `GEMINI_API_KEY` + `GEMINI_MODEL` in local `.env` |
+| `npm test` / `npm run build` | **PASS** | Regression gate before live run |
+| Gemini env present | **PASS** | `.env` had key; model in `.env` was Live-only → E2E used override `GEMINI_MODEL=gemini-3.8-flash` |
+| J1 Sources ≥3 ready | **PASS** | OpenAI GPT-4o mini, Google Gemini Flash, Anthropic Claude 3.5 Sonnet (URL + paste) |
+| J1 Brief generate | **PASS** | Live Gemini; angle “Race to the Bottom on Price…” |
+| J2 Starter draft | **PASS** | ~384 words; implication section regen once |
+| J3 Analyze + accept≥2 + reject≥1 | **PASS** | 2 accept / 1 reject; original snapshot preserved |
+| Artifacts written | **PASS** | `sample-editorial.md`, `before-after-writing.md`, `PRODUCT_ENGINEERING_NOTE.md` |
+| Live Gemini (overall) | **Verified for M7 capture** | Transient 503/429 during draft/analyze; retries succeeded |
+
+**URLs used**
+
+- https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/
+- https://developers.googleblog.com/en/gemini-15-flash-8b-is-now-generally-available-for-use/
+- https://www.anthropic.com/news/claude-3-5-sonnet
 
 ## In progress
 
@@ -45,16 +53,15 @@ See earlier verification logs in git history / prior PROGRESS snapshots.
 
 ## Pending
 
-- [ ] M7 Sample artifacts
 - [ ] M8 Deploy + README finalize
 
 ## Decisions awaiting approval
 
-None for M6.
+None for M7.
 
 ## Blockers
 
-None.
+None remaining for M7. Note: default `.env` `GEMINI_MODEL=gemini-3.8-live-extended-thinking` does **not** support `generateContent`; use a Flash-class model for this app.
 
 ## Confirmed decisions
 
