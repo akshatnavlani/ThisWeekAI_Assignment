@@ -1,0 +1,13 @@
+---
+description: Testing expectations per implementation milestones
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Testing
+
+- Unit test: writing detectors, overlap resolver, SSRF URL guards, Zod schemas.
+- Integration: API routes with temp DB + mocked Gemini.
+- Do not mark milestone complete without running relevant tests.
+- Distinguish Implemented / Tested / Verified E2E / Not verified in PROGRESS.
+- Never claim README commands work until executed.

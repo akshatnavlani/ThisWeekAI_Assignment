@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+:root {
+  /* Color tokens — design-system/this-week-in-ai-editorial/MASTER.md */
+  --color-primary: #1e3a5f;
+  --color-on-primary: #ffffff;
+  --color-secondary: #334155;
+  --color-accent: #0f766e;
+  --color-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-border: #e2e8f0;
+  --color-destructive: #dc2626;
+  --color-ring: #1e3a5f;
+
+  /* Writing highlight tokens */
+  --highlight-complex: #f59e0b;
+  --highlight-complex-bg: #fef3c7;
+  --highlight-passive: #2563eb;
+  --highlight-passive-bg: #dbeafe;
+  --highlight-filler: #c026d3;
+  --highlight-filler-bg: #fae8ff;
+
+  /* Spacing tokens */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+@theme inline {
+  --color-primary: #1e3a5f;
+  --color-on-primary: #ffffff;
+  --color-secondary: #334155;
+  --color-accent: #0f766e;
+  --color-background: #f7f8fa;
+  --color-surface: #ffffff;
+  --color-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-border: #e2e8f0;
+  --color-destructive: #dc2626;
+  --color-ring: #1e3a5f;
+  --font-display: var(--font-libre-bodoni);
+  --font-sans: var(--font-public-sans);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
+}

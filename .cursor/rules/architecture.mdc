@@ -1,0 +1,15 @@
+---
+description: Architecture constraints for services, LLM, ingestion, and persistence
+globs: "{app,lib}/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Architecture rules
+
+- Monolith Next.js Route Handlers under `app/api/**`; domain logic in `lib/**`.
+- SQLite only for MVP persistence (`DATABASE_PATH`).
+- Gemini via thin `lib/llm` client + Zod; one repair retry on invalid JSON.
+- Ingestion: SSRF-safe fetch + Readability; optional X API; paste fallback. Never fabricate page content.
+- Writing: deterministic complex/passive/filler → non-overlap → LLM explain/rewrite.
+- Draft original snapshot preserved separately from working sections.
+- Validate evidence `sourceIds` against project sources.

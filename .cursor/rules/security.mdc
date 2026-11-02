@@ -1,0 +1,12 @@
+---
+description: Security requirements for keys, SSRF, and input limits
+globs: "{app/api,lib}/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Security
+
+- `GEMINI_API_KEY` / `X_BEARER_TOKEN` server-only; never expose to client bundles.
+- SSRF: https/http only; block private/link-local/metadata IPs; timeout + size cap; careful redirects.
+- Cap paste/body sizes; sanitize error messages (no key leakage).
+- No auth in MVP — disclose unprotected deploy in README.

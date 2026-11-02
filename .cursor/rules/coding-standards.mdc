@@ -1,0 +1,15 @@
+---
+description: Coding and UI standards aligned to design system and Cursor.md simplicity
+globs: "**/*.{ts,tsx,css}"
+alwaysApply: false
+---
+
+# Coding standards
+
+- Prefer simple, direct code; no speculative abstractions.
+- TypeScript strict; validate external/LLM data at boundaries.
+- UI: Libre Bodoni + Public Sans; tokens from design-system MASTER.md.
+- No Inter/Roboto as designed fonts; no emoji icons; Lucide only.
+- Light editorial UI; no glassmorphism/glow/cinematic dark.
+- Server Components default; client only when needed for editor interactions.
+- Follow `Cursor.md`: surgical changes, goal-driven verification.

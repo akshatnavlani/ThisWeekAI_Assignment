@@ -1,0 +1,18 @@
+---
+description: Project purpose, stack, and documentation authority for the AI Editorial Workspace
+alwaysApply: true
+---
+
+# Project overview
+
+This Week in AI — AI Editorial Workspace take-home.
+
+**Flow:** Sources → Research brief → Draft (sections) → Writing assist.
+
+**Stack:** Next.js TS, SQLite, Gemini, Tailwind, ui-ux-pro-max design system.
+
+**Authority:** `docs/MVP_SCOPE.md`, `docs/DECISIONS.md`, `docs/ARCHITECTURE.md`, `docs/SCHEMA.md`, `docs/IMPLEMENTATION_PLAN.md`, `design-system/this-week-in-ai-editorial/MASTER.md`.
+
+**Gate:** No application implementation until user sends `APPROVE PLAN AND AUTHORIZE IMPLEMENTATION`.
+
+Out of scope: auth, multi-tenant cloud DB, brief per-section regen, LangChain/multi-agent, Inter/dark-glow UI.
