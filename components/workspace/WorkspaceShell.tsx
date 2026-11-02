@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { BriefDto } from "@/lib/types/brief";
+import type { DraftDto } from "@/lib/types/draft";
 import type { SourceDto } from "@/lib/types/source";
 import {
   isProjectStage,
@@ -22,6 +23,13 @@ type ProjectDto = {
   updatedAt: string;
 };
 
+type ProjectPayload = {
+  project: ProjectDto;
+  sources: SourceDto[];
+  brief: BriefDto | null;
+  draft: DraftDto | null;
+};
+
 type LoadState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -30,24 +38,33 @@ type LoadState =
       project: ProjectDto;
       sources: SourceDto[];
       brief: BriefDto | null;
+      draft: DraftDto | null;
     };
 
 type StagePanelProps = {
   stage: ProjectStage;
   sources: SourceDto[];
   brief: BriefDto | null;
+  draft: DraftDto | null;
+  selectedAngleId: string | null;
+  onSelectedAngleIdChange: (angleId: string) => void;
   onSourcesChanged: () => Promise<void>;
   onGenerateBrief: () => Promise<void>;
   onContinueToDraft: () => void;
+  onDraftChanged: (draft: DraftDto) => void;
 };
 
 function StagePanel({
   stage,
   sources,
   brief,
+  draft,
+  selectedAngleId,
+  onSelectedAngleIdChange,
   onSourcesChanged,
   onGenerateBrief,
   onContinueToDraft,
+  onDraftChanged,
 }: StagePanelProps) {
   switch (stage) {
     case "sources":
@@ -63,12 +80,22 @@ function StagePanel({
         <ResearchStage
           brief={brief}
           sources={sources}
+          selectedAngleId={selectedAngleId}
+          onSelectedAngleIdChange={onSelectedAngleIdChange}
           onChanged={onSourcesChanged}
           onContinueToDraft={onContinueToDraft}
         />
       );
     case "draft":
-      return <DraftStage />;
+      return (
+        <DraftStage
+          draft={draft}
+          brief={brief}
+          selectedAngleId={selectedAngleId}
+          onSelectedAngleIdChange={onSelectedAngleIdChange}
+          onDraftChanged={onDraftChanged}
+        />
+      );
     case "writing":
       return <WritingStage />;
   }
@@ -77,6 +104,7 @@ function StagePanel({
 export function WorkspaceShell() {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [stage, setStage] = useState<ProjectStage>("sources");
+  const [selectedAngleId, setSelectedAngleId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -85,28 +113,8 @@ export function WorkspaceShell() {
     if (!res.ok) {
       throw new Error(`Load failed (${res.status})`);
     }
-    return (await res.json()) as {
-      project: ProjectDto;
-      sources: SourceDto[];
-      brief: BriefDto | null;
-    };
+    return (await res.json()) as ProjectPayload;
   }, []);
-
-  const applyPayload = useCallback(
-    (data: {
-      project: ProjectDto;
-      sources: SourceDto[];
-      brief: BriefDto | null;
-    }) => {
-      setLoadState({
-        status: "ready",
-        project: data.project,
-        sources: data.sources ?? [],
-        brief: data.brief ?? null,
-      });
-    },
-    [],
-  );
 
   const loadProject = useCallback(async () => {
     setLoadState({ status: "loading" });
@@ -117,23 +125,53 @@ export function WorkspaceShell() {
         ? data.project.stage
         : "sources";
       setStage(nextStage);
-      applyPayload(data);
+      setLoadState({
+        status: "ready",
+        project: data.project,
+        sources: data.sources ?? [],
+        brief: data.brief ?? null,
+        draft: data.draft ?? null,
+      });
+      if (data.draft?.selectedAngleId) {
+        setSelectedAngleId(data.draft.selectedAngleId);
+      } else if (data.brief?.angles[0]) {
+        setSelectedAngleId(data.brief.angles[0].id);
+      }
     } catch {
       setLoadState({
         status: "error",
         message: "Couldn't load project — retry",
       });
     }
-  }, [applyPayload, fetchPayload]);
+  }, [fetchPayload]);
 
   const refreshProject = useCallback(async () => {
     try {
       const data = await fetchPayload();
-      applyPayload(data);
+      setLoadState((prev) =>
+        prev.status === "ready"
+          ? {
+              ...prev,
+              project: data.project,
+              sources: data.sources ?? [],
+              brief: data.brief ?? null,
+              draft: data.draft ?? null,
+            }
+          : {
+              status: "ready",
+              project: data.project,
+              sources: data.sources ?? [],
+              brief: data.brief ?? null,
+              draft: data.draft ?? null,
+            },
+      );
+      if (data.draft?.selectedAngleId) {
+        setSelectedAngleId(data.draft.selectedAngleId);
+      }
     } catch {
       setActionError("Couldn't refresh project — retry from the header.");
     }
-  }, [applyPayload, fetchPayload]);
+  }, [fetchPayload]);
 
   useEffect(() => {
     void loadProject();
@@ -182,6 +220,15 @@ export function WorkspaceShell() {
     }
     await refreshProject();
     await selectStage("research");
+  };
+
+  const onDraftChanged = (draft: DraftDto) => {
+    setLoadState((prev) =>
+      prev.status === "ready" ? { ...prev, draft } : prev,
+    );
+    if (draft.selectedAngleId) {
+      setSelectedAngleId(draft.selectedAngleId);
+    }
   };
 
   return (
@@ -262,11 +309,15 @@ export function WorkspaceShell() {
               stage={stage}
               sources={loadState.sources}
               brief={loadState.brief}
+              draft={loadState.draft}
+              selectedAngleId={selectedAngleId}
+              onSelectedAngleIdChange={setSelectedAngleId}
               onSourcesChanged={refreshProject}
               onGenerateBrief={generateBrief}
               onContinueToDraft={() => {
                 void selectStage("draft");
               }}
+              onDraftChanged={onDraftChanged}
             />
           </div>
         )}

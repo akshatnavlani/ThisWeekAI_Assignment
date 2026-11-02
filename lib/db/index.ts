@@ -35,3 +35,9 @@ export {
   updateBriefLight,
   type BriefLightUpdate,
 } from "./repos/research";
+export {
+  getDraftByProject,
+  replaceDraftGraph,
+  updateDraftSection,
+  type ReplaceDraftInput,
+} from "./repos/drafts";

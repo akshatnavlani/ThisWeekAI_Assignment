@@ -8,6 +8,8 @@ import { EmptyState } from "../EmptyState";
 type ResearchStageProps = {
   brief: BriefDto | null;
   sources: SourceDto[];
+  selectedAngleId: string | null;
+  onSelectedAngleIdChange: (angleId: string) => void;
   onChanged: () => Promise<void> | void;
   onContinueToDraft: () => void;
 };
@@ -55,6 +57,8 @@ function SourceChips({
 export function ResearchStage({
   brief,
   sources,
+  selectedAngleId,
+  onSelectedAngleIdChange,
   onChanged,
   onContinueToDraft,
 }: ResearchStageProps) {
@@ -67,6 +71,16 @@ export function ResearchStage({
     setWhatHappened(brief?.whatHappened ?? "");
     setWhyItMatters(brief?.whyItMatters ?? "");
   }, [brief]);
+
+  useEffect(() => {
+    if (!brief?.angles.length) return;
+    if (
+      !selectedAngleId ||
+      !brief.angles.some((a) => a.id === selectedAngleId)
+    ) {
+      onSelectedAngleIdChange(brief.angles[0]!.id);
+    }
+  }, [brief, selectedAngleId, onSelectedAngleIdChange]);
 
   const sourcesById = useMemo(
     () => new Map(sources.map((s) => [s.id, s])),
@@ -250,18 +264,42 @@ export function ResearchStage({
         <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
           Newsletter angles
         </h3>
-        <ul className="mt-2 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
-          {brief.angles.map((angle) => (
-            <li key={angle.id}>
-              <p className="text-foreground" style={{ margin: 0, fontWeight: 600 }}>
-                {angle.title}
-              </p>
-              <p className="text-secondary" style={{ margin: "4px 0 0" }}>
-                {angle.description}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <p className="text-muted-foreground" style={{ margin: "var(--space-sm) 0 0", fontSize: "0.8125rem" }}>
+          Select an angle to take into draft generation.
+        </p>
+        <div
+          className="mt-3 flex flex-col gap-2"
+          role="radiogroup"
+          aria-label="Select newsletter angle"
+        >
+          {brief.angles.map((angle) => {
+            const selected = selectedAngleId === angle.id;
+            return (
+              <button
+                key={angle.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                disabled={busy}
+                onClick={() => onSelectedAngleIdChange(angle.id)}
+                className={
+                  selected
+                    ? "border border-border bg-muted text-left text-foreground"
+                    : "border border-border bg-surface text-left text-secondary"
+                }
+                style={{ padding: "var(--space-md)", minHeight: 44 }}
+              >
+                <span style={{ fontWeight: 600 }}>{angle.title}</span>
+                <span
+                  className="block text-muted-foreground"
+                  style={{ marginTop: 4, fontSize: "0.875rem" }}
+                >
+                  {angle.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -285,7 +323,7 @@ export function ResearchStage({
         </button>
         <button
           type="button"
-          disabled={!canContinue || busy}
+          disabled={!canContinue || busy || !selectedAngleId}
           onClick={onContinueToDraft}
           className="cursor-pointer bg-accent text-on-primary disabled:cursor-not-allowed disabled:bg-accent/40"
           style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
@@ -294,7 +332,7 @@ export function ResearchStage({
         </button>
       </div>
       <p className="text-muted-foreground" style={{ margin: 0, fontSize: "0.8125rem" }}>
-        Draft generation lands in M5 — Continue only switches stages for now.
+        Continue carries your selected angle into the draft stage.
       </p>
     </div>
   );

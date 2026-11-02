@@ -4,11 +4,11 @@
 
 ## Current phase
 
-**Implementation — M0–M4 complete; M5 not started**
+**Implementation — M0–M5 complete; M6 not started**
 
 ## Current milestone
 
-M4 — Research Assistant (**complete**)
+M5 — Draft generation + section regen (**complete**)
 
 ## Completed
 
@@ -20,21 +20,22 @@ M4 — Research Assistant (**complete**)
 - [x] **M2 — Workspace UI shell**
 - [x] **M3 — Source ingestion**
 - [x] **M4 — Research Assistant**
+- [x] **M5 — Draft generation + section regen**
 
-### M0–M3
+### M0–M4
 
-See earlier verification logs in git history / prior PROGRESS snapshots. Summaries remain: foundation, SQLite project API, workspace shell, and source ingest verified.
+See earlier verification logs in git history / prior PROGRESS snapshots. Summaries remain: foundation, SQLite project API, workspace shell, source ingest, and research briefs verified.
 
-### M4 verification log
+### M5 verification log
 
 | Check | Result | Notes |
 |---|---|---|
-| Gemini client + brief prompt + Zod schema | **Implemented** | `lib/llm/**`; one repair retry |
-| `validateSourceIds` + `generateBrief` + research repo | **Implemented** | Replace angles/claims on full generate |
-| `POST /api/research/generate`, `PATCH /api/research/brief` | **Implemented** | Gate `NEEDS_SOURCES`; hydrate `brief` on project GET |
-| Sources Generate + Research UI (edit/regen/continue) | **Implemented** | Continue → draft stage only (no draft API) |
-| `npm test` | **Verified PASS** | 28 tests incl. schema, sourceIds, mocked generate/repair/gate |
-| `npm run build` | **Verified PASS** | Research routes registered |
+| Draft types + `workingPlainFromSections` + drafts repo | **Implemented** | Hydrate `draft` on `GET /api/projects/current` |
+| Gemini draft schema/prompts + `generateDraft` / `regenerateSection` | **Implemented** | Sources section deterministic; one repair retry |
+| `POST /api/draft/generate`, section PATCH + regenerate | **Implemented** | Modes `starter_draft` \| `outline_only`; snapshot set once on first starter |
+| Research angle select + DraftStage generate/edit/regen | **Implemented** | Analyze writing still disabled (M6) |
+| `npm test` | **Verified PASS** | 43 tests incl. draft keys, sources section, generate/regen/snapshot |
+| `npm run build` | **Verified PASS** | Draft routes registered |
 | Live Gemini end-to-end with real API key | **Not verified** | Requires `GEMINI_API_KEY` + `GEMINI_MODEL` in local `.env` |
 
 ## In progress
@@ -43,14 +44,13 @@ See earlier verification logs in git history / prior PROGRESS snapshots. Summari
 
 ## Pending
 
-- [ ] M5 Draft
 - [ ] M6 Writing
 - [ ] M7 Sample artifacts
 - [ ] M8 Deploy + README finalize
 
 ## Decisions awaiting approval
 
-None for M4.
+None for M5.
 
 ## Blockers
 

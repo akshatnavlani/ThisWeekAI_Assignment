@@ -1,8 +1,10 @@
 import { desc, eq, inArray, sql } from "drizzle-orm";
+import type { BriefDto } from "@/lib/types/brief";
+import type { DraftDto } from "@/lib/types/draft";
 import type { AppDb } from "../client";
 import { newId, nowIso } from "../ids";
 import { drafts, projects, writingSuggestions } from "../schema";
-import type { BriefDto } from "@/lib/types/brief";
+import { getDraftByProject } from "./drafts";
 import { getBriefByProject } from "./research";
 import { listSourcesByProject, type SourceDto } from "./sources";
 
@@ -26,7 +28,7 @@ export type CurrentProjectPayload = {
   project: ProjectDto;
   sources: SourceDto[];
   brief: BriefDto | null;
-  draft: null;
+  draft: DraftDto | null;
   suggestionsSummary: SuggestionsSummary;
 };
 
@@ -143,7 +145,7 @@ export function loadCurrentProjectPayload(db: AppDb): CurrentProjectPayload {
     project,
     sources: listSourcesByProject(db, project.id),
     brief: getBriefByProject(db, project.id),
-    draft: null,
+    draft: getDraftByProject(db, project.id),
     suggestionsSummary: loadSuggestionsSummary(db, project.id),
   };
 }
