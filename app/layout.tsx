@@ -1,21 +1,23 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Libre_Bodoni, Public_Sans } from "next/font/google";
+import { Literata, Newsreader, Space_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import "./globals.css";
 
-const libreBodoni = Libre_Bodoni({
-  variable: "--font-libre-bodoni",
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
   subsets: ["latin"],
   display: "swap",
 });
 
-const publicSans = Public_Sans({
-  variable: "--font-public-sans",
+const literata = Literata({
+  variable: "--font-literata",
   subsets: ["latin"],
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
   display: "swap",
 });
@@ -34,9 +36,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${libreBodoni.variable} ${publicSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${newsreader.variable} ${literata.variable} ${spaceMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="flex min-h-full flex-col font-sans">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

@@ -6,15 +6,15 @@ const STYLES: Record<
 > = {
   ready: {
     label: "ready",
-    className: "bg-accent/10 text-accent border-accent/30",
+    className: "bg-sage-tint text-accent border-accent/30",
   },
   needs_content: {
     label: "needs_content",
-    className: "bg-muted text-secondary border-border",
+    className: "bg-surface-subtle text-ink-secondary border-border",
   },
   failed: {
     label: "failed",
-    className: "bg-destructive/10 text-destructive border-destructive/30",
+    className: "bg-terracotta-tint text-secondary border-secondary/40",
   },
 };
 
@@ -26,11 +26,11 @@ export function StatusChip({ status }: StatusChipProps) {
   const style = STYLES[status];
   return (
     <span
-      className={`inline-flex items-center border font-mono text-xs ${style.className}`}
+      className={`inline-flex items-center border font-mono text-[10px] tracking-wider uppercase ${style.className}`}
       style={{
         minHeight: 28,
-        padding: "0 var(--space-sm)",
-        borderRadius: 2,
+        padding: "0 8px",
+        borderRadius: "var(--radius-sm)",
       }}
     >
       {style.label}

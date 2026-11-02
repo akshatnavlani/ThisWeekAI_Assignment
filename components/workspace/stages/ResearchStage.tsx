@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { BriefDto } from "@/lib/types/brief";
 import type { SourceDto } from "@/lib/types/source";
+import { MarkdownBody } from "@/components/ui/MarkdownBody";
 import { EmptyState } from "../EmptyState";
+import { StatusChip, type SourceStatusVisual } from "../StatusChip";
 
 type ResearchStageProps = {
   brief: BriefDto | null;
@@ -13,6 +15,14 @@ type ResearchStageProps = {
   onChanged: () => Promise<void> | void;
   onContinueToDraft: () => void;
 };
+
+function isStatusChip(status: string): status is SourceStatusVisual {
+  return (
+    status === "ready" ||
+    status === "needs_content" ||
+    status === "failed"
+  );
+}
 
 function SourceChips({
   sourceIds,
@@ -33,7 +43,7 @@ function SourceChips({
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="border border-border bg-muted font-mono text-xs text-secondary underline-offset-2 hover:underline"
+              className="rounded border border-border bg-sage-tint font-mono text-[10px] tracking-wide text-accent underline-offset-2 hover:underline"
               style={{ padding: "2px 8px" }}
             >
               {label}
@@ -43,7 +53,7 @@ function SourceChips({
         return (
           <span
             key={id}
-            className="border border-border bg-muted font-mono text-xs text-secondary"
+            className="rounded border border-border bg-surface-subtle font-mono text-[10px] tracking-wide text-ink-secondary"
             style={{ padding: "2px 8px" }}
           >
             {label}
@@ -64,6 +74,7 @@ export function ResearchStage({
 }: ResearchStageProps) {
   const [whatHappened, setWhatHappened] = useState("");
   const [whyItMatters, setWhyItMatters] = useState("");
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +109,7 @@ export function ResearchStage({
         return;
       }
       await onChanged();
+      setEditing(false);
     } catch {
       setError("Network error while generating brief");
     } finally {
@@ -120,6 +132,7 @@ export function ResearchStage({
         return;
       }
       await onChanged();
+      setEditing(false);
     } catch {
       setError("Network error while saving brief");
     } finally {
@@ -136,7 +149,7 @@ export function ResearchStage({
           nextAction="Add usable sources, then Generate research brief"
         />
         {error ? (
-          <p className="text-destructive" role="alert" style={{ margin: 0 }}>
+          <p className="font-mono text-sm text-destructive" role="alert" style={{ margin: 0 }}>
             {error}
           </p>
         ) : null}
@@ -144,8 +157,8 @@ export function ResearchStage({
           type="button"
           disabled={busy}
           onClick={() => void regenerate()}
-          className="cursor-pointer self-start bg-accent text-on-primary disabled:opacity-60"
-          style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
+          className="cursor-pointer self-start rounded bg-primary px-5 font-mono text-[11px] tracking-wide text-on-primary disabled:opacity-60"
+          style={{ minHeight: 44 }}
         >
           {busy ? "Generating…" : "Generate research brief"}
         </button>
@@ -155,116 +168,108 @@ export function ResearchStage({
 
   const canContinue = brief.angles.length >= 1;
 
-  return (
-    <div className="flex flex-col gap-6">
-      {error ? (
-        <p className="text-destructive" role="alert" style={{ margin: 0 }}>
-          {error}
-        </p>
-      ) : null}
-
-      <section
-        className="border border-border bg-surface"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
-          What happened
-        </h3>
-        <textarea
-          value={whatHappened}
-          onChange={(e) => setWhatHappened(e.target.value)}
-          rows={4}
-          disabled={busy}
-          className="mt-2 w-full border border-border bg-surface text-foreground"
-          style={{ padding: "var(--space-md)" }}
-        />
+  const dossier = (
+    <div className="flex flex-col gap-5">
+      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
+            What happened
+          </h3>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setEditing((v) => !v)}
+            className="cursor-pointer font-mono text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            {editing ? "Preview" : "Edit"}
+          </button>
+        </div>
+        {editing ? (
+          <textarea
+            value={whatHappened}
+            onChange={(e) => setWhatHappened(e.target.value)}
+            rows={4}
+            disabled={busy}
+            className="mt-2 w-full rounded border border-border bg-surface text-foreground focus:border-foreground focus:outline-none"
+            style={{ padding: "var(--space-md)" }}
+          />
+        ) : (
+          <MarkdownBody content={whatHappened} />
+        )}
       </section>
 
-      <section
-        className="border border-border bg-surface"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
+      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
           Why it matters
         </h3>
-        <textarea
-          value={whyItMatters}
-          onChange={(e) => setWhyItMatters(e.target.value)}
-          rows={4}
-          disabled={busy}
-          className="mt-2 w-full border border-border bg-surface text-foreground"
-          style={{ padding: "var(--space-md)" }}
-        />
+        {editing ? (
+          <textarea
+            value={whyItMatters}
+            onChange={(e) => setWhyItMatters(e.target.value)}
+            rows={4}
+            disabled={busy}
+            className="mt-2 w-full rounded border border-border bg-surface text-foreground focus:border-foreground focus:outline-none"
+            style={{ padding: "var(--space-md)" }}
+          />
+        ) : (
+          <div className="mt-2">
+            <MarkdownBody content={whyItMatters} />
+          </div>
+        )}
       </section>
 
-      <section
-        className="border border-border bg-surface"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
+      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
           Facts
         </h3>
-        <ul className="mt-2 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
+        <ul className="mt-3 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
           {brief.facts.map((fact, index) => (
-            <li key={`fact-${index}`}>
-              <p className="text-secondary" style={{ margin: 0 }}>
-                {fact.text}
-              </p>
+            <li key={`fact-${index}`} className="border-l-2 border-accent pl-3">
+              <MarkdownBody content={fact.text} />
               <SourceChips sourceIds={fact.sourceIds} sourcesById={sourcesById} />
             </li>
           ))}
         </ul>
       </section>
 
-      <section
-        className="border border-border bg-surface"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
+      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
           Analysis
         </h3>
-        <ul className="mt-2 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
+        <ul className="mt-3 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
           {brief.analysis.map((item, index) => (
             <li key={`analysis-${index}`}>
-              <p className="text-muted-foreground" style={{ margin: 0, fontSize: "0.75rem" }}>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground" style={{ margin: 0 }}>
                 {item.kind}
               </p>
-              <p className="text-secondary" style={{ margin: "4px 0 0" }}>
-                {item.text}
-              </p>
+              <div className="mt-1">
+                <MarkdownBody content={item.text} />
+              </div>
               <SourceChips sourceIds={item.sourceIds} sourcesById={sourcesById} />
             </li>
           ))}
         </ul>
       </section>
 
-      <section
-        className="border border-border bg-surface"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
+      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
           Connections
         </h3>
-        <ul className="mt-2 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
+        <ul className="mt-3 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
           {brief.connections.map((item, index) => (
             <li key={`conn-${index}`}>
-              <p className="text-secondary" style={{ margin: 0 }}>
-                {item.text}
-              </p>
+              <MarkdownBody content={item.text} />
               <SourceChips sourceIds={item.sourceIds} sourcesById={sourcesById} />
             </li>
           ))}
         </ul>
       </section>
 
-      <section
-        className="border border-border bg-surface"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-      >
-        <h3 className="text-foreground" style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>
+      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
+        <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
           Newsletter angles
         </h3>
-        <p className="text-muted-foreground" style={{ margin: "var(--space-sm) 0 0", fontSize: "0.8125rem" }}>
+        <p className="font-mono text-[11px] text-muted-foreground" style={{ margin: "8px 0 0" }}>
           Select an angle to take into draft generation.
         </p>
         <div
@@ -282,18 +287,15 @@ export function ResearchStage({
                 aria-checked={selected}
                 disabled={busy}
                 onClick={() => onSelectedAngleIdChange(angle.id)}
-                className={
+                className={`rounded-lg border text-left transition-colors ${
                   selected
-                    ? "border border-border bg-muted text-left text-foreground"
-                    : "border border-border bg-surface text-left text-secondary"
-                }
+                    ? "border-secondary bg-terracotta-tint text-foreground"
+                    : "border-border bg-surface text-ink-secondary hover:bg-surface-subtle"
+                }`}
                 style={{ padding: "var(--space-md)", minHeight: 44 }}
               >
-                <span style={{ fontWeight: 600 }}>{angle.title}</span>
-                <span
-                  className="block text-muted-foreground"
-                  style={{ marginTop: 4, fontSize: "0.875rem" }}
-                >
+                <span className="font-display text-lg">{angle.title}</span>
+                <span className="mt-1 block text-sm text-muted-foreground">
                   {angle.description}
                 </span>
               </button>
@@ -301,23 +303,70 @@ export function ResearchStage({
           })}
         </div>
       </section>
+    </div>
+  );
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => void saveEdits()}
-          className="cursor-pointer border border-border bg-surface text-secondary disabled:opacity-60"
-          style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
-        >
-          Save edits
-        </button>
+  return (
+    <div className="flex flex-col gap-6">
+      {error ? (
+        <p className="font-mono text-sm text-destructive" role="alert" style={{ margin: 0 }}>
+          {error}
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+        <aside className="flex flex-col gap-3 lg:col-span-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="font-display text-2xl text-foreground" style={{ margin: 0 }}>
+              Corpus
+            </h2>
+            <span className="font-mono text-[10px] text-muted-foreground">
+              {sources.length} sources
+            </span>
+          </div>
+          <ul className="flex flex-col gap-2" style={{ margin: 0, padding: 0, listStyle: "none" }}>
+            {sources.map((source) => (
+              <li
+                key={source.id}
+                className="rounded border border-border bg-surface-subtle p-3"
+              >
+                <p className="font-display text-base text-foreground" style={{ margin: 0 }}>
+                  {source.title?.trim() || source.url || "Untitled"}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {isStatusChip(source.status) ? (
+                    <StatusChip status={source.status} />
+                  ) : null}
+                  <span className="font-mono text-[10px] text-muted-foreground">
+                    {source.kind}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        <div className="lg:col-span-8">{dossier}</div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+        {editing ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void saveEdits()}
+            className="cursor-pointer rounded bg-primary px-4 font-mono text-[11px] tracking-wide text-on-primary disabled:opacity-60"
+            style={{ minHeight: 44 }}
+          >
+            Save edits
+          </button>
+        ) : null}
         <button
           type="button"
           disabled={busy}
           onClick={() => void regenerate()}
-          className="cursor-pointer border border-border bg-surface text-secondary disabled:opacity-60"
-          style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
+          className="cursor-pointer rounded border border-border bg-surface px-4 font-mono text-[11px] tracking-wide text-ink-secondary disabled:opacity-60"
+          style={{ minHeight: 44 }}
         >
           {busy ? "Working…" : "Full regenerate"}
         </button>
@@ -325,15 +374,12 @@ export function ResearchStage({
           type="button"
           disabled={!canContinue || busy || !selectedAngleId}
           onClick={onContinueToDraft}
-          className="cursor-pointer bg-accent text-on-primary disabled:cursor-not-allowed disabled:bg-accent/40"
-          style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
+          className="cursor-pointer rounded bg-primary px-5 font-mono text-[11px] tracking-wide text-on-primary disabled:cursor-not-allowed disabled:opacity-40"
+          style={{ minHeight: 44 }}
         >
           Continue to draft
         </button>
       </div>
-      <p className="text-muted-foreground" style={{ margin: 0, fontSize: "0.8125rem" }}>
-        Continue carries your selected angle into the draft stage.
-      </p>
     </div>
   );
 }

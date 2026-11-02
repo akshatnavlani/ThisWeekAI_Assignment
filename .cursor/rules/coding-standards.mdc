@@ -8,8 +8,8 @@ alwaysApply: false
 
 - Prefer simple, direct code; no speculative abstractions.
 - TypeScript strict; validate external/LLM data at boundaries.
-- UI: Libre Bodoni + Public Sans; tokens from design-system MASTER.md.
+- UI: Newsreader + Literata + Space Mono (ADR-016); tokens from design-system MASTER.md.
 - No Inter/Roboto as designed fonts; no emoji icons; Lucide only.
-- Light editorial UI; no glassmorphism/glow/cinematic dark.
+- Atelier light + dark themes; no glassmorphism/glow; no Export/Checklist fake chrome.
 - Server Components default; client only when needed for editor interactions.
 - Follow `Cursor.md`: surgical changes, goal-driven verification.

@@ -749,3 +749,31 @@ M8 needed a reproducible host path for the same Next.js App Router process (UI +
 - No Postgres / async-repo rewrite in M8.
 - Public Render URL requires a Render account + a plan that allows persistent disks; if unavailable, Docker Compose remains the verified deploy path (ADR-006).
 - Never bake `.env` or `*.db` into the image.
+
+---
+
+## ADR-016: Atelier dual-theme UI (Newsreader / Literata / Space Mono)
+
+- **Decision ID:** ADR-016
+- **Date:** 2026-11-03
+- **Status:** Approved (implemented)
+- **Phase:** UI restyle after M8
+
+### Context
+
+`UI_Example/` provided Atelier Editorial (light) and Atelier Nocturne (dark) mockups. ADR-010 / MASTER previously specified Libre Bodoni + Public Sans + cool slate/teal and light-only. Product owner directed a restyle to the examples with both themes, example fonts, stage stepper as top nav, markdown display, and hover/tap suggestions — without Export/Checklist or out-of-scope detectors.
+
+### Decision
+
+1. **Visual system:** Atelier Editorial (default light) + Atelier Nocturne (`html.dark`); toggle persisted as `twiai-theme`.
+2. **Fonts:** Newsreader (display), Literata (body), Space Mono (labels/metrics) via `next/font`.
+3. **IA unchanged:** Sources → Research → Draft → Writing as top-nav pills; metrics remain in Writing; no Diagnostics/Publication routes.
+4. **Suggestions:** Inline highlights with hover/tap popovers (Accept/Reject); no primary side list.
+5. **Markdown:** Display-only (`react-markdown` + `remark-gfm`) for brief/draft read views; highlight canvas stays plain text for offset integrity.
+6. **Explicit skips:** Export, Publishing Checklist, profile, jargon check, credibility sort, conversational research chat.
+
+### Consequences
+
+- ADR-010 typography/palette and prior MASTER cool-slate guidance are **superseded for UI**.
+- Design-system docs and AGENTS.md font line updated to match.
+- Warm parchment + terracotta is intentional for this product (example-driven), not a generic AI landing cliché.

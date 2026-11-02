@@ -3,14 +3,14 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { DraftDto } from "@/lib/types/draft";
 import type {
+  SuggestionCategory,
   SuggestionDto,
   WritingMetrics,
 } from "@/lib/types/writing";
-import {
-  CATEGORY_HIGHLIGHT_BG,
-  CATEGORY_HIGHLIGHT_FG,
-} from "@/lib/types/writing";
+import { SUGGESTION_CATEGORIES } from "@/lib/types/writing";
+import { MarkdownBody } from "@/components/ui/MarkdownBody";
 import { EmptyState } from "../EmptyState";
+import { SuggestionMark } from "../SuggestionMark";
 
 type WritingStageProps = {
   draft: DraftDto | null;
@@ -22,12 +22,22 @@ type WritingStageProps = {
   onReject: (id: string) => Promise<void>;
 };
 
+type CategoryFilter = "all" | SuggestionCategory;
+
 function HighlightedDraft({
   text,
   pending,
+  busy,
+  actingId,
+  onAccept,
+  onReject,
 }: {
   text: string;
   pending: SuggestionDto[];
+  busy: boolean;
+  actingId: string | null;
+  onAccept: (id: string) => Promise<void>;
+  onReject: (id: string) => Promise<void>;
 }) {
   const parts = useMemo(() => {
     const sorted = [...pending]
@@ -44,17 +54,15 @@ function HighlightedDraft({
         );
       }
       nodes.push(
-        <mark
+        <SuggestionMark
           key={s.id || `m-${i}`}
-          style={{
-            backgroundColor: CATEGORY_HIGHLIGHT_BG[s.category],
-            color: "inherit",
-            boxShadow: `inset 0 -2px 0 ${CATEGORY_HIGHLIGHT_FG[s.category]}`,
-            padding: "0 1px",
-          }}
-        >
-          {text.slice(s.startOffset, s.endOffset)}
-        </mark>,
+          suggestion={s}
+          text={text.slice(s.startOffset, s.endOffset)}
+          busy={busy}
+          actingId={actingId}
+          onAccept={onAccept}
+          onReject={onReject}
+        />,
       );
       cursor = s.endOffset;
     });
@@ -62,15 +70,15 @@ function HighlightedDraft({
       nodes.push(<span key={`t-end`}>{text.slice(cursor)}</span>);
     }
     return nodes;
-  }, [text, pending]);
+  }, [text, pending, busy, actingId, onAccept, onReject]);
 
   return (
-    <pre
-      className="whitespace-pre-wrap break-words font-sans text-secondary"
-      style={{ margin: 0, fontSize: "0.9375rem", lineHeight: 1.65 }}
+    <div
+      className="whitespace-pre-wrap break-words font-sans text-[1.0625rem] leading-[1.65] text-ink-secondary"
+      style={{ margin: 0 }}
     >
       {parts}
-    </pre>
+    </div>
   );
 }
 
@@ -84,6 +92,9 @@ export function WritingStage({
   onReject,
 }: WritingStageProps) {
   const [compare, setCompare] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [renderedPreview, setRenderedPreview] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
 
@@ -92,8 +103,18 @@ export function WritingStage({
     [suggestions],
   );
 
-  const visiblePending = pending.slice(0, 6);
-  const extraCount = Math.max(0, pending.length - visiblePending.length);
+  const filteredPending = useMemo(() => {
+    if (categoryFilter === "all") return pending;
+    return pending.filter((s) => s.category === categoryFilter);
+  }, [pending, categoryFilter]);
+
+  const counts = useMemo(() => {
+    const map: Record<string, number> = { all: pending.length };
+    for (const cat of SUGGESTION_CATEGORIES) {
+      map[cat] = pending.filter((s) => s.category === cat).length;
+    }
+    return map;
+  }, [pending]);
 
   const run = async (fn: () => Promise<void>) => {
     setError(null);
@@ -101,6 +122,28 @@ export function WritingStage({
       await fn();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
+    }
+  };
+
+  const accept = async (id: string) => {
+    setActingId(id);
+    try {
+      await run(async () => {
+        await onAccept(id);
+      });
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const reject = async (id: string) => {
+    setActingId(id);
+    try {
+      await run(async () => {
+        await onReject(id);
+      });
+    } finally {
+      setActingId(null);
     }
   };
 
@@ -114,296 +157,273 @@ export function WritingStage({
     );
   }
 
+  const filterChips: { id: CategoryFilter; label: string }[] = [
+    { id: "all", label: `All (${counts.all ?? 0})` },
+    { id: "complex", label: `Complex (${counts.complex ?? 0})` },
+    { id: "passive", label: `Passive (${counts.passive ?? 0})` },
+    { id: "filler", label: `Filler (${counts.filler ?? 0})` },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-      <div className="flex min-w-0 flex-1 flex-col gap-6">
-        {error ? (
-          <p className="text-destructive" role="alert" style={{ margin: 0 }}>
-            {error}
-          </p>
-        ) : null}
+    <div className="flex flex-col gap-4">
+      {!focusMode ? (
+        <section className="sticky top-[4.5rem] z-20 rounded-lg border border-border bg-surface-container-low/95 p-3 shadow-sm backdrop-blur-sm">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-ink-secondary">
+              {metrics ? (
+                <>
+                  <span className="rounded bg-surface-container px-2 py-1">
+                    <strong className="text-foreground">{metrics.wordCount}</strong> words
+                  </span>
+                  <span className="rounded bg-surface-container px-2 py-1">
+                    ~{metrics.readingTimeMinutes} min
+                  </span>
+                  <span className="rounded bg-surface-container px-2 py-1">
+                    avg {metrics.averageSentenceLength}
+                  </span>
+                  <span className="rounded bg-sage-tint px-2 py-1 text-accent">
+                    read {metrics.readabilityScore}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">Run analyze for metrics</span>
+              )}
+            </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void run(onAnalyze)}
-            className="cursor-pointer bg-accent text-on-primary disabled:opacity-60"
-            style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
-          >
-            {busy ? "Analyzing…" : "Re-analyze"}
-          </button>
-          <button
-            type="button"
-            disabled={busy || !draft.originalSnapshot}
-            onClick={() => setCompare((v) => !v)}
-            className="cursor-pointer border border-border bg-surface text-secondary disabled:opacity-60"
-            style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
-            aria-pressed={compare}
-          >
-            {compare ? "Hide compare" : "Compare original vs revised"}
-          </button>
-        </div>
-
-        {compare && draft.originalSnapshot ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <section
-              className="border border-border bg-surface"
-              style={{ padding: "var(--space-lg)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <h3
-                className="text-foreground"
-                style={{ margin: "0 0 var(--space-sm)", fontSize: "0.875rem", fontWeight: 600 }}
-              >
-                Original
-              </h3>
-              <pre
-                className="whitespace-pre-wrap break-words font-sans text-secondary"
-                style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.65 }}
-              >
-                {draft.originalSnapshot}
-              </pre>
-            </section>
-            <section
-              className="border border-border bg-surface"
-              style={{ padding: "var(--space-lg)", boxShadow: "var(--shadow-sm)" }}
-            >
-              <h3
-                className="text-foreground"
-                style={{ margin: "0 0 var(--space-sm)", fontSize: "0.875rem", fontWeight: 600 }}
-              >
-                Revised
-              </h3>
-              <pre
-                className="whitespace-pre-wrap break-words font-sans text-secondary"
-                style={{ margin: 0, fontSize: "0.875rem", lineHeight: 1.65 }}
-              >
-                {draft.workingPlain}
-              </pre>
-            </section>
-          </div>
-        ) : (
-          <section
-            className="border border-border bg-surface"
-            style={{ padding: "var(--space-lg)", boxShadow: "var(--shadow-sm)" }}
-            aria-label="Draft with highlights"
-          >
-            <HighlightedDraft text={draft.workingPlain} pending={pending} />
-          </section>
-        )}
-
-        <section
-          className="border border-border bg-surface"
-          style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-          aria-label="Suggestions"
-        >
-          <h3
-            className="text-foreground"
-            style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}
-          >
-            Suggestions
-          </h3>
-          {pending.length === 0 ? (
-            <p
-              className="text-muted-foreground"
-              style={{ margin: "var(--space-sm) 0 0", fontSize: "0.875rem" }}
-            >
-              No pending suggestions. Re-analyze after edits, or you&apos;re done.
-            </p>
-          ) : (
-            <ul
-              className="mt-3 flex flex-col gap-3"
-              style={{ margin: 0, padding: 0, listStyle: "none" }}
-            >
-              {visiblePending.map((s, index) => (
-                <li
-                  key={s.id}
-                  className="border border-border bg-muted"
-                  style={{
-                    padding: "var(--space-md)",
-                    animationDelay: `${Math.min(index, 5) * 40}ms`,
-                  }}
-                >
-                  <p
-                    className="text-muted-foreground"
-                    style={{ margin: 0, fontSize: "0.75rem", textTransform: "uppercase" }}
+            <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto">
+              {filterChips.map((chip) => {
+                const active = categoryFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setCategoryFilter(chip.id)}
+                    className={`shrink-0 cursor-pointer rounded px-2.5 py-1 font-mono text-[11px] tracking-wide ${
+                      active
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "bg-surface-container text-ink-secondary hover:bg-surface-container-high"
+                    }`}
                   >
-                    {s.category}
-                  </p>
-                  <p className="text-secondary" style={{ margin: "6px 0 0", fontSize: "0.875rem" }}>
-                    <span style={{ fontWeight: 600 }}>Passage: </span>
-                    {s.passage}
-                  </p>
-                  <p className="text-secondary" style={{ margin: "6px 0 0", fontSize: "0.875rem" }}>
-                    {s.explanation}
-                  </p>
-                  {s.rewrite && s.rewrite !== s.passage ? (
-                    <p className="text-foreground" style={{ margin: "6px 0 0", fontSize: "0.875rem" }}>
-                      <span style={{ fontWeight: 600 }}>Rewrite: </span>
-                      {s.rewrite}
-                    </p>
-                  ) : null}
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      disabled={busy || actingId !== null}
-                      onClick={() => {
-                        setActingId(s.id);
-                        void run(async () => {
-                          await onAccept(s.id);
-                        }).finally(() => setActingId(null));
-                      }}
-                      className="cursor-pointer bg-primary text-on-primary disabled:opacity-60"
-                      style={{ minHeight: 44, padding: "0 var(--space-md)" }}
-                    >
-                      {actingId === s.id ? "Working…" : "Accept suggestion"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || actingId !== null}
-                      onClick={() => {
-                        setActingId(s.id);
-                        void run(async () => {
-                          await onReject(s.id);
-                        }).finally(() => setActingId(null));
-                      }}
-                      className="cursor-pointer border border-border bg-surface text-secondary disabled:opacity-60"
-                      style={{ minHeight: 44, padding: "0 var(--space-md)" }}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-          {extraCount > 0 ? (
-            <p
-              className="text-muted-foreground"
-              style={{ margin: "var(--space-sm) 0 0", fontSize: "0.8125rem" }}
-            >
-              +{extraCount} more pending — scroll the list after resolving these.
-            </p>
-          ) : null}
-          {pending.length > 6 ? (
-            <ul
-              className="mt-3 flex flex-col gap-3"
-              style={{ margin: 0, padding: 0, listStyle: "none", maxHeight: 320, overflow: "auto" }}
-            >
-              {pending.slice(6).map((s) => (
-                <li
-                  key={s.id}
-                  className="border border-border bg-muted"
-                  style={{ padding: "var(--space-md)" }}
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded-lg bg-surface-container p-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompare(false);
+                    setRenderedPreview(false);
+                  }}
+                  className={`rounded px-2.5 py-1 font-mono text-[11px] ${
+                    !compare && !renderedPreview
+                      ? "bg-surface text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
                 >
-                  <p className="text-muted-foreground" style={{ margin: 0, fontSize: "0.75rem" }}>
-                    {s.category}
-                  </p>
-                  <p className="text-secondary" style={{ margin: "6px 0 0", fontSize: "0.875rem" }}>
-                    {s.passage}
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      type="button"
-                      disabled={busy || actingId !== null}
-                      onClick={() => {
-                        setActingId(s.id);
-                        void run(async () => {
-                          await onAccept(s.id);
-                        }).finally(() => setActingId(null));
-                      }}
-                      className="cursor-pointer bg-primary text-on-primary disabled:opacity-60"
-                      style={{ minHeight: 44, padding: "0 var(--space-md)" }}
-                    >
-                      Accept suggestion
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy || actingId !== null}
-                      onClick={() => {
-                        setActingId(s.id);
-                        void run(async () => {
-                          await onReject(s.id);
-                        }).finally(() => setActingId(null));
-                      }}
-                      className="cursor-pointer border border-border bg-surface text-secondary disabled:opacity-60"
-                      style={{ minHeight: 44, padding: "0 var(--space-md)" }}
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                  Edit canvas
+                </button>
+                <button
+                  type="button"
+                  disabled={!draft.originalSnapshot}
+                  onClick={() => {
+                    setCompare(true);
+                    setRenderedPreview(false);
+                  }}
+                  className={`rounded px-2.5 py-1 font-mono text-[11px] disabled:opacity-40 ${
+                    compare
+                      ? "bg-surface text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  Compare
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenderedPreview(true);
+                    setCompare(false);
+                  }}
+                  className={`rounded px-2.5 py-1 font-mono text-[11px] ${
+                    renderedPreview
+                      ? "bg-surface text-foreground shadow-sm"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  MD preview
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFocusMode(true)}
+                className="cursor-pointer rounded border border-border px-3 py-1.5 font-mono text-[11px] text-ink-secondary"
+              >
+                Focus
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void run(onAnalyze)}
+                className="cursor-pointer rounded border border-secondary bg-terracotta-tint px-3 py-1.5 font-mono text-[11px] text-secondary disabled:opacity-60"
+              >
+                {busy ? "Analyzing…" : "Re-analyze"}
+              </button>
+            </div>
+          </div>
+          {pending.length > 0 ? (
+            <p className="mt-2 font-mono text-[10px] text-muted-foreground" style={{ margin: "8px 0 0" }}>
+              Hover or tap a highlighted passage for explanation, rewrite, Accept / Reject.
+            </p>
           ) : null}
         </section>
-      </div>
+      ) : (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setFocusMode(false)}
+            className="cursor-pointer rounded border border-border bg-surface px-3 py-1.5 font-mono text-[11px] text-ink-secondary"
+          >
+            Exit focus
+          </button>
+        </div>
+      )}
 
-      <aside
-        className="w-full shrink-0 border border-border bg-surface lg:w-64"
-        style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
-        aria-label="Writing metrics"
-      >
-        <h3
-          className="text-foreground"
-          style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}
-        >
-          Metrics
-        </h3>
-        {metrics ? (
-          <ul
-            style={{
-              margin: "var(--space-sm) 0 0",
-              padding: 0,
-              listStyle: "none",
-              fontSize: "0.8125rem",
-              lineHeight: 1.55,
-            }}
-          >
-            <li className="text-secondary" style={{ marginBottom: 10 }}>
-              <strong className="text-foreground">Word count:</strong>{" "}
-              {metrics.wordCount}
-              <span className="block text-muted-foreground">
-                {metrics.explanations.wordCount}
-              </span>
-            </li>
-            <li className="text-secondary" style={{ marginBottom: 10 }}>
-              <strong className="text-foreground">Avg. sentence:</strong>{" "}
-              {metrics.averageSentenceLength}
-              <span className="block text-muted-foreground">
-                {metrics.explanations.averageSentenceLength}
-              </span>
-            </li>
-            <li className="text-secondary" style={{ marginBottom: 10 }}>
-              <strong className="text-foreground">Reading time:</strong>{" "}
-              {metrics.readingTimeMinutes} min
-              <span className="block text-muted-foreground">
-                {metrics.explanations.readingTime}
-              </span>
-            </li>
-            <li className="text-secondary">
-              <strong className="text-foreground">Readability:</strong>{" "}
-              {metrics.readabilityScore}
-              <span className="block text-muted-foreground">
-                {metrics.explanations.readability}
-              </span>
-            </li>
-          </ul>
-        ) : (
-          <p
-            className="text-muted-foreground"
-            style={{ margin: "var(--space-sm) 0 0", fontSize: "0.8125rem" }}
-          >
-            Run analyze to compute metrics.
-          </p>
-        )}
-        <p
-          className="text-muted-foreground"
-          style={{ margin: "var(--space-md) 0 0", fontSize: "0.75rem" }}
-        >
-          Informational — not an optimization target.
+      {error ? (
+        <p className="font-mono text-sm text-destructive" role="alert" style={{ margin: 0 }}>
+          {error}
         </p>
-      </aside>
+      ) : null}
+
+      <div
+        className={`flex flex-col gap-6 ${focusMode ? "" : "lg:flex-row lg:items-start"}`}
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {compare && draft.originalSnapshot ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+                <h3 className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground" style={{ margin: 0 }}>
+                  Original
+                </h3>
+                <div className="mt-3">
+                  <MarkdownBody content={draft.originalSnapshot} />
+                </div>
+              </section>
+              <section className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+                <h3 className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground" style={{ margin: 0 }}>
+                  Revised
+                </h3>
+                <div className="mt-3">
+                  <MarkdownBody content={draft.workingPlain} />
+                </div>
+              </section>
+            </div>
+          ) : renderedPreview ? (
+            <section
+              className="rounded-lg border border-border bg-surface p-5 shadow-sm sm:p-8"
+              aria-label="Markdown preview"
+            >
+              <MarkdownBody content={draft.workingPlain} />
+            </section>
+          ) : (
+            <section
+              className="rounded-lg border border-border bg-surface p-5 shadow-sm sm:p-8"
+              aria-label="Draft with highlights"
+            >
+              <HighlightedDraft
+                text={draft.workingPlain}
+                pending={filteredPending}
+                busy={busy}
+                actingId={actingId}
+                onAccept={accept}
+                onReject={reject}
+              />
+              {pending.length === 0 ? (
+                <p className="mt-4 font-mono text-[11px] text-muted-foreground" style={{ margin: "16px 0 0" }}>
+                  No pending suggestions. Re-analyze after edits, or you&apos;re done.
+                </p>
+              ) : null}
+            </section>
+          )}
+        </div>
+
+        {!focusMode ? (
+          <aside
+            className="w-full shrink-0 rounded-lg border border-border bg-surface-subtle lg:w-72"
+            style={{ padding: "var(--space-md)", boxShadow: "var(--shadow-sm)" }}
+            aria-label="Writing metrics"
+          >
+            <h3 className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground" style={{ margin: 0 }}>
+              Metrics
+            </h3>
+            {metrics ? (
+              <ul
+                style={{
+                  margin: "12px 0 0",
+                  padding: 0,
+                  listStyle: "none",
+                  fontSize: "0.8125rem",
+                  lineHeight: 1.55,
+                }}
+              >
+                <li className="mb-3 rounded border border-border bg-surface p-2">
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                    Word count
+                  </span>
+                  <p className="font-display text-2xl text-foreground" style={{ margin: "4px 0 0" }}>
+                    {metrics.wordCount}
+                  </p>
+                  <span className="block text-muted-foreground">
+                    {metrics.explanations.wordCount}
+                  </span>
+                </li>
+                <li className="mb-3 rounded border border-border bg-surface p-2">
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                    Avg. sentence
+                  </span>
+                  <p className="font-display text-xl text-foreground" style={{ margin: "4px 0 0" }}>
+                    {metrics.averageSentenceLength}
+                  </p>
+                  <span className="block text-muted-foreground">
+                    {metrics.explanations.averageSentenceLength}
+                  </span>
+                </li>
+                <li className="mb-3 rounded border border-border bg-surface p-2">
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                    Reading time
+                  </span>
+                  <p className="font-display text-xl text-foreground" style={{ margin: "4px 0 0" }}>
+                    {metrics.readingTimeMinutes} min
+                  </p>
+                  <span className="block text-muted-foreground">
+                    {metrics.explanations.readingTime}
+                  </span>
+                </li>
+                <li className="rounded border border-border bg-surface p-2">
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                    Readability
+                  </span>
+                  <p className="font-display text-xl text-foreground" style={{ margin: "4px 0 0" }}>
+                    {metrics.readabilityScore}
+                  </p>
+                  <span className="block text-muted-foreground">
+                    {metrics.explanations.readability}
+                  </span>
+                </li>
+              </ul>
+            ) : (
+              <p className="font-mono text-[11px] text-muted-foreground" style={{ margin: "12px 0 0" }}>
+                Run analyze to compute metrics.
+              </p>
+            )}
+            <p className="font-mono text-[10px] text-muted-foreground" style={{ margin: "16px 0 0" }}>
+              Informational — not an optimization target.
+            </p>
+          </aside>
+        ) : null}
+      </div>
     </div>
   );
 }

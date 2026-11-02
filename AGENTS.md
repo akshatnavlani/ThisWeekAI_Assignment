@@ -22,8 +22,9 @@ Build a lightweight **AI Editorial Workspace**: sources → evidence-backed rese
 - SQLite local file  
 - Gemini only (no Groq unless new ADR)  
 - Tailwind + design-system tokens  
-- Libre Bodoni + Public Sans via `next/font` — **never Inter as primary**  
+- Newsreader + Literata + Space Mono via `next/font` (ADR-016) — **never Inter as primary**  
 - Lucide icons — no emoji icons  
+- Light + dark Atelier themes (`html.dark`); no Export/Checklist fake chrome  
 
 ## Architectural principles
 

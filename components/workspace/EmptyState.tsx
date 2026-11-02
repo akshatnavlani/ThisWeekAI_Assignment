@@ -4,34 +4,30 @@ type EmptyStateProps = {
   nextAction?: string;
 };
 
-export function EmptyState({
-  title,
-  description,
-  nextAction,
-}: EmptyStateProps) {
+export function EmptyState({ title, description, nextAction }: EmptyStateProps) {
   return (
     <div
-      className="border border-dashed border-border bg-muted/40"
-      style={{ padding: "var(--space-xl)" }}
+      className="rounded-lg border border-border bg-surface"
+      style={{ padding: "var(--space-xl)", boxShadow: "var(--shadow-sm)" }}
     >
       <h2
         className="font-display text-foreground"
-        style={{ fontSize: "1.25rem", margin: 0, lineHeight: 1.3 }}
+        style={{ margin: 0, fontSize: "1.25rem", fontWeight: 500 }}
       >
         {title}
       </h2>
       <p
-        className="text-secondary"
-        style={{ margin: "var(--space-sm) 0 0", lineHeight: 1.6 }}
+        className="text-ink-secondary"
+        style={{ margin: "var(--space-sm) 0 0", fontSize: "0.9375rem", lineHeight: 1.6 }}
       >
         {description}
       </p>
       {nextAction ? (
         <p
-          className="text-muted-foreground"
-          style={{ margin: "var(--space-md) 0 0", fontSize: "0.875rem" }}
+          className="font-mono text-muted-foreground"
+          style={{ margin: "var(--space-md) 0 0", fontSize: "0.6875rem", letterSpacing: "0.04em" }}
         >
-          Next: {nextAction}
+          {nextAction}
         </p>
       ) : null}
     </div>

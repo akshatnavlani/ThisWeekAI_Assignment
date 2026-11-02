@@ -11,6 +11,7 @@ import {
 } from "@/lib/workspace/stages";
 import { LoadingBlock } from "./LoadingBlock";
 import { StageStepper } from "./StageStepper";
+import { ThemeToggle } from "./ThemeToggle";
 import { DraftStage } from "./stages/DraftStage";
 import { ResearchStage } from "./stages/ResearchStage";
 import { SourcesStage } from "./stages/SourcesStage";
@@ -342,47 +343,51 @@ export function WorkspaceShell() {
   };
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      <header
-        className="border-b border-border bg-surface"
-        style={{ padding: "var(--space-md) var(--space-xl)" }}
-      >
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p
-              className="font-display text-primary"
-              style={{ fontSize: "1.5rem", lineHeight: 1.2, margin: 0 }}
-            >
-              This Week in AI
-            </p>
-            <p
-              className="text-muted-foreground"
-              style={{ margin: "var(--space-xs) 0 0", fontSize: "0.875rem" }}
-            >
-              Editorial Workspace
-              {loadState.status === "ready" ? (
-                <>
-                  {" "}
-                  ·{" "}
-                  <span className="text-secondary">{loadState.project.title}</span>
-                </>
-              ) : null}
-            </p>
-          </div>
-          {loadState.status === "ready" ? (
-            <StageStepper
-              active={stage}
-              disabled={isSaving}
-              onSelect={(s) => {
-                void selectStage(s);
-              }}
+    <div className="flex min-h-full flex-1 flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <span
+              className="size-2.5 shrink-0 rounded-full bg-secondary"
+              aria-hidden="true"
             />
-          ) : null}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <p className="font-display text-xl tracking-tight text-foreground sm:text-2xl" style={{ margin: 0 }}>
+                  This Week in AI
+                </p>
+                <span className="hidden font-mono text-[10px] uppercase tracking-widest text-muted-foreground sm:inline">
+                  Studio
+                </span>
+              </div>
+              {loadState.status === "ready" ? (
+                <p
+                  className="truncate font-mono text-[11px] tracking-wide text-ink-secondary"
+                  style={{ margin: "4px 0 0" }}
+                >
+                  {loadState.project.title}
+                </p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
+            {loadState.status === "ready" ? (
+              <StageStepper
+                active={stage}
+                disabled={isSaving}
+                onSelect={(s) => {
+                  void selectStage(s);
+                }}
+              />
+            ) : null}
+            <ThemeToggle />
+          </div>
         </div>
         {actionError ? (
           <p
-            className="mx-auto w-full max-w-6xl text-destructive"
-            style={{ margin: "var(--space-sm) auto 0", fontSize: "0.875rem" }}
+            className="mx-auto w-full max-w-[1440px] px-4 pb-3 font-mono text-sm text-destructive sm:px-6 lg:px-8"
+            style={{ margin: 0 }}
             role="alert"
           >
             {actionError}
@@ -390,15 +395,12 @@ export function WorkspaceShell() {
         ) : null}
       </header>
 
-      <main
-        className="mx-auto flex w-full max-w-6xl flex-1 flex-col"
-        style={{ padding: "var(--space-xl)" }}
-      >
+      <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         {loadState.status === "loading" ? (
           <LoadingBlock />
         ) : loadState.status === "error" ? (
           <div
-            className="border border-border bg-surface"
+            className="rounded-lg border border-border bg-surface"
             style={{ padding: "var(--space-xl)", boxShadow: "var(--shadow-sm)" }}
           >
             <p className="text-destructive" role="alert" style={{ margin: 0 }}>
@@ -407,8 +409,8 @@ export function WorkspaceShell() {
             <button
               type="button"
               onClick={() => void loadProject()}
-              className="mt-4 cursor-pointer bg-primary text-on-primary"
-              style={{ minHeight: 44, padding: "0 var(--space-lg)" }}
+              className="mt-4 cursor-pointer rounded bg-primary px-4 font-mono text-[11px] tracking-wide text-on-primary"
+              style={{ minHeight: 44 }}
             >
               Retry
             </button>

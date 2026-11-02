@@ -5,7 +5,7 @@ Walkthrough README for the [FDE Intern Take Home Assignment](./FDE%20Intern%20Ta
 | Status | Detail |
 |---|---|
 | **Plan** | Approved (2026-11-02) |
-| **Application code** | **M0–M8** — product flows verified through M7; M8 Docker + SQLite deploy path verified locally |
+| **Application code** | **M0–M8** + Atelier UI (ADR-016 light/dark, MD display, hover suggestions) |
 | **Screenshots / live URL** | UI via local/Compose; **public Render URL BLOCKED** pending Render account + persistent-disk plan (see Self-hosting) |
 
 ---
@@ -93,7 +93,7 @@ Sources (≥3 usable)
 | Hemingway | **Inspired, not a clone** | Inline highlights + categories + metrics; plus accept/reject (PRD) |
 | LLM | **Gemini only** (ADR-010) | Keys available; structured output; Groq deferred (no dual-provider abstraction) |
 | App stack | **Next.js + Tailwind** (ADR-010) | One TypeScript monolith; fast delivery |
-| UI design | **ui-ux-pro-max** curated system (ADR-010) | Light editorial UI; Libre Bodoni + Public Sans; no dark/glow/Inter cliché |
+| UI design | **Atelier Editorial / Nocturne** (ADR-016) | Newsreader + Literata + Space Mono; light+dark; no Export/Checklist fake chrome |
 | Deploy | **Docker + SQLite volume** (ADR-006, ADR-015) | Same image locally (Compose) and on Render (+ disk); avoid Vercel+file SQLite |
 | Explicitly out | Auth, cloud multi-project, brief section regen, multi-agent frameworks, jargon-as-4th-check | Keeps a small tool done well |
 
