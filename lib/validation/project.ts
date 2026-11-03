@@ -3,8 +3,7 @@ import { z } from "zod";
 export const projectStageSchema = z.enum([
   "sources",
   "research",
-  "draft",
-  "writing",
+  "compose",
 ]);
 
 export const patchProjectSchema = z

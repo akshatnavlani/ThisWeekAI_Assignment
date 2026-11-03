@@ -17,8 +17,7 @@ import {
 } from "@/lib/llm/prompts/draft";
 import { geminiSectionRegenSchema } from "@/lib/llm/schemas/draft";
 import { LlmOutputInvalidError } from "@/lib/research/generateBrief";
-import type { DraftDto, DraftSectionKey } from "@/lib/types/draft";
-import { DRAFT_SECTION_TITLES } from "@/lib/types/draft";
+import type { DraftDto } from "@/lib/types/draft";
 import { buildSourcesSectionContent } from "./buildSourcesSection";
 import {
   buildBriefBlock,
@@ -36,7 +35,8 @@ export class NeedsDraftError extends Error {
 
 function parseSectionOutput(
   raw: string,
-  expectedKey: DraftSectionKey,
+  expectedKey: string,
+  expectedTitle: string,
 ):
   | { ok: true; content: string; title: string }
   | { ok: false; issues: string[] } {
@@ -57,16 +57,31 @@ function parseSectionOutput(
     };
   }
 
-  if (schema.data.key !== expectedKey) {
+  const content = schema.data.content.trim();
+  if (!content) {
+    return { ok: false, issues: ["Section content is empty"] };
+  }
+
+  const keyOk =
+    !schema.data.key ||
+    schema.data.key === expectedKey ||
+    schema.data.key.toLowerCase() === expectedKey.toLowerCase();
+  const titleOk =
+    schema.data.title.trim().toLowerCase() ===
+    expectedTitle.trim().toLowerCase();
+
+  if (!keyOk && !titleOk) {
     return {
       ok: false,
-      issues: [`Expected key ${expectedKey}, got ${schema.data.key}`],
+      issues: [
+        `Expected key ${expectedKey} or title "${expectedTitle}", got key ${schema.data.key ?? "(none)"} title "${schema.data.title}"`,
+      ],
     };
   }
 
   return {
     ok: true,
-    content: schema.data.content,
+    content,
     title: schema.data.title,
   };
 }
@@ -74,7 +89,7 @@ function parseSectionOutput(
 export async function regenerateDraftSection(
   db: AppDb,
   projectId: string,
-  sectionKey: DraftSectionKey,
+  sectionKey: string,
   deps: { generateJson?: GenerateJsonFn } = {},
 ): Promise<DraftDto> {
   const draft = getDraftByProject(db, projectId);
@@ -82,10 +97,15 @@ export async function regenerateDraftSection(
     throw new NeedsDraftError("Generate a draft before regenerating a section.");
   }
 
+  const target = draft.sections.find((s) => s.key === sectionKey);
+  if (!target) {
+    throw new NeedsDraftError(`Section not found: ${sectionKey}`);
+  }
+
   if (sectionKey === "sources") {
     const sources = listSourcesByProject(db, projectId);
     const content = buildSourcesSectionContent(sources);
-    const updated = updateDraftSection(db, projectId, "sources", content);
+    const updated = updateDraftSection(db, projectId, "sources", { content });
     if (!updated) {
       throw new NeedsDraftError("Draft disappeared while refreshing citations.");
     }
@@ -112,7 +132,6 @@ export async function regenerateDraftSection(
   const systemInstruction = buildSectionRegenSystemInstruction();
   const briefBlock = buildBriefBlock(brief);
   const siblingsBlock = buildSiblingsBlock(draft.sections, sectionKey);
-  const sectionTitle = DRAFT_SECTION_TITLES[sectionKey];
 
   let repairHint: string | undefined;
   let lastIssues: string[] = [];
@@ -120,7 +139,8 @@ export async function regenerateDraftSection(
   for (let attempt = 0; attempt < 2; attempt++) {
     const userPrompt = buildSectionRegenUserPrompt({
       sectionKey,
-      sectionTitle,
+      sectionTitle: target.title,
+      sectionPurpose: target.purpose,
       angleTitle: angle.title,
       angleDescription: angle.description,
       briefBlock,
@@ -138,14 +158,11 @@ export async function regenerateDraftSection(
       throw err;
     }
 
-    const result = parseSectionOutput(raw, sectionKey);
+    const result = parseSectionOutput(raw, sectionKey, target.title);
     if (result.ok) {
-      const updated = updateDraftSection(
-        db,
-        projectId,
-        sectionKey,
-        result.content,
-      );
+      const updated = updateDraftSection(db, projectId, sectionKey, {
+        content: result.content,
+      });
       if (!updated) {
         throw new NeedsDraftError("Draft disappeared while regenerating section.");
       }

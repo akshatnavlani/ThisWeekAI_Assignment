@@ -6,16 +6,15 @@ import type { DraftDto } from "@/lib/types/draft";
 import type { SourceDto } from "@/lib/types/source";
 import type { SuggestionDto, WritingMetrics } from "@/lib/types/writing";
 import {
-  isProjectStage,
+  coerceProjectStage,
   type ProjectStage,
 } from "@/lib/workspace/stages";
 import { LoadingBlock } from "./LoadingBlock";
 import { StageStepper } from "./StageStepper";
 import { ThemeToggle } from "./ThemeToggle";
-import { DraftStage } from "./stages/DraftStage";
+import { ComposeStage } from "./stages/ComposeStage";
 import { ResearchStage } from "./stages/ResearchStage";
 import { SourcesStage } from "./stages/SourcesStage";
-import { WritingStage } from "./stages/WritingStage";
 
 type ProjectDto = {
   id: string;
@@ -58,9 +57,10 @@ type StagePanelProps = {
   onSelectedAngleIdChange: (angleId: string) => void;
   onSourcesChanged: () => Promise<void>;
   onGenerateBrief: () => Promise<void>;
+  onStartNewProject: () => Promise<void>;
   onContinueToDraft: () => void;
   onDraftChanged: (draft: DraftDto) => void;
-  onAnalyzeWriting: () => Promise<void>;
+  onAnalyzeWriting: (sectionKeys?: string[]) => Promise<void>;
   onAcceptSuggestion: (id: string) => Promise<void>;
   onRejectSuggestion: (id: string) => Promise<void>;
 };
@@ -77,6 +77,7 @@ function StagePanel({
   onSelectedAngleIdChange,
   onSourcesChanged,
   onGenerateBrief,
+  onStartNewProject,
   onContinueToDraft,
   onDraftChanged,
   onAnalyzeWriting,
@@ -90,6 +91,7 @@ function StagePanel({
           sources={sources}
           onChanged={onSourcesChanged}
           onGenerateBrief={onGenerateBrief}
+          onStartNewProject={onStartNewProject}
         />
       );
     case "research":
@@ -103,25 +105,18 @@ function StagePanel({
           onContinueToDraft={onContinueToDraft}
         />
       );
-    case "draft":
+    case "compose":
       return (
-        <DraftStage
+        <ComposeStage
           draft={draft}
           brief={brief}
+          suggestions={suggestions}
+          metrics={metrics}
+          writingBusy={writingBusy}
           selectedAngleId={selectedAngleId}
           onSelectedAngleIdChange={onSelectedAngleIdChange}
           onDraftChanged={onDraftChanged}
           onAnalyzeWriting={onAnalyzeWriting}
-        />
-      );
-    case "writing":
-      return (
-        <WritingStage
-          draft={draft}
-          suggestions={suggestions}
-          metrics={metrics}
-          busy={writingBusy}
-          onAnalyze={onAnalyzeWriting}
           onAccept={onAcceptSuggestion}
           onReject={onRejectSuggestion}
         />
@@ -150,9 +145,7 @@ export function WorkspaceShell() {
     setActionError(null);
     try {
       const data = await fetchPayload();
-      const nextStage = isProjectStage(data.project.stage)
-        ? data.project.stage
-        : "sources";
+      const nextStage = coerceProjectStage(data.project.stage);
       setStage(nextStage);
       setLoadState({
         status: "ready",
@@ -258,6 +251,37 @@ export function WorkspaceShell() {
     await selectStage("research");
   };
 
+  const startNewProject = async () => {
+    setActionError(null);
+    try {
+      const res = await fetch("/api/projects/current/reset", { method: "POST" });
+      const data = (await res.json()) as ProjectPayload & {
+        error?: { message?: string };
+      };
+      if (!res.ok) {
+        throw new Error(
+          data.error?.message ?? `Could not start new project (${res.status})`,
+        );
+      }
+      setSelectedAngleId(null);
+      setStage("sources");
+      setLoadState({
+        status: "ready",
+        project: data.project,
+        sources: data.sources ?? [],
+        brief: data.brief ?? null,
+        draft: data.draft ?? null,
+        suggestions: data.suggestions ?? [],
+        metrics: null,
+      });
+    } catch (err) {
+      setActionError(
+        err instanceof Error ? err.message : "Could not start a new project",
+      );
+      throw err;
+    }
+  };
+
   const onDraftChanged = (draft: DraftDto) => {
     setLoadState((prev) =>
       prev.status === "ready"
@@ -269,11 +293,17 @@ export function WorkspaceShell() {
     }
   };
 
-  const analyzeWriting = async () => {
+  const analyzeWriting = async (sectionKeys?: string[]) => {
     setWritingBusy(true);
     setActionError(null);
     try {
-      const res = await fetch("/api/writing/analyze", { method: "POST" });
+      const res = await fetch("/api/writing/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          sectionKeys?.length ? { sectionKeys } : {},
+        ),
+      });
       const data = (await res.json()) as {
         error?: { message?: string };
         draft?: DraftDto;
@@ -293,7 +323,6 @@ export function WorkspaceShell() {
             }
           : prev,
       );
-      setStage("writing");
     } finally {
       setWritingBusy(false);
     }
@@ -344,30 +373,16 @@ export function WorkspaceShell() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <span
-              className="size-2.5 shrink-0 rounded-full bg-secondary"
-              aria-hidden="true"
-            />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-baseline gap-2">
-                <p className="font-display text-xl tracking-tight text-foreground sm:text-2xl" style={{ margin: 0 }}>
-                  This Week in AI
-                </p>
-                <span className="hidden font-mono text-[10px] uppercase tracking-widest text-muted-foreground sm:inline">
-                  Studio
-                </span>
-              </div>
-              {loadState.status === "ready" ? (
-                <p
-                  className="truncate font-mono text-[11px] tracking-wide text-ink-secondary"
-                  style={{ margin: "4px 0 0" }}
-                >
-                  {loadState.project.title}
-                </p>
-              ) : null}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <p className="font-display text-xl tracking-tight text-foreground sm:text-2xl" style={{ margin: 0 }}>
+                This Week in AI
+              </p>
+              <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
+                Studio
+              </span>
             </div>
           </div>
 
@@ -429,8 +444,9 @@ export function WorkspaceShell() {
               onSelectedAngleIdChange={setSelectedAngleId}
               onSourcesChanged={refreshProject}
               onGenerateBrief={generateBrief}
+              onStartNewProject={startNewProject}
               onContinueToDraft={() => {
-                void selectStage("draft");
+                void selectStage("compose");
               }}
               onDraftChanged={onDraftChanged}
               onAnalyzeWriting={analyzeWriting}

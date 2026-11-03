@@ -27,9 +27,9 @@ export function StageStepper({
             disabled={disabled}
             aria-current={isActive ? "page" : undefined}
             onClick={() => onSelect(stage.id)}
-            className={`shrink-0 cursor-pointer rounded px-3 py-2 font-mono text-[11px] tracking-wide transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 ${
+            className={`shrink-0 cursor-pointer rounded px-3 py-2 font-mono text-[11px] transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 ${
               isActive
-                ? "bg-primary text-on-primary shadow-sm"
+                ? "bg-surface text-foreground shadow-sm ring-1 ring-border"
                 : "bg-transparent text-muted-foreground hover:bg-surface-container-high hover:text-foreground"
             }`}
             style={{ minHeight: 40 }}

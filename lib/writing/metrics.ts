@@ -7,20 +7,38 @@ function countSyllables(word: string): number {
   const w = word.toLowerCase().replace(/[^a-z]/g, "");
   if (!w) return 0;
   if (w.length <= 3) return 1;
-  const cleaned = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "");
+  const cleaned = w
+    .replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "")
+    .replace(/^y/, "");
   const groups = cleaned.match(/[aeiouy]{1,2}/g);
   return Math.max(1, groups?.length ?? 1);
 }
 
+/**
+ * Collapse markdown links/images and bare URLs so syllable counts aren't
+ * dominated by concatenated URL letters (which clamps Flesch to 0).
+ */
+export function proseForReadability(text: string): string {
+  return text
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)]\([^)]*\)/g, "$1")
+    .replace(/\bhttps?:\/\/[^\s)<]+/gi, " ")
+    .replace(/\bwww\.[^\s)<]+/gi, " ")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
 /** Flesch Reading Ease — informational only. */
 export function fleschReadingEase(text: string): number {
-  const words = countWords(text);
-  const sentences = Math.max(1, splitSentences(text).length);
+  const prose = proseForReadability(text);
+  const words = countWords(prose);
+  const sentences = Math.max(1, splitSentences(prose).length);
   if (words === 0) return 0;
-  const syllables = text
+  const syllables = prose
     .split(/\s+/)
     .filter(Boolean)
     .reduce((sum, w) => sum + countSyllables(w), 0);
+  // Avoid divide-by-zero if tokens were all non-alpha (URLs stripped to empty)
+  if (syllables === 0) return 0;
   const score =
     206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words);
   return Math.round(Math.max(0, Math.min(100, score)) * 10) / 10;

@@ -2,6 +2,8 @@ import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { BriefDto } from "@/lib/types/brief";
 import type { DraftDto } from "@/lib/types/draft";
 import type { SuggestionDto } from "@/lib/types/writing";
+import { deleteProjectUploadsDir } from "@/lib/uploads/paths";
+import { coerceProjectStage } from "@/lib/workspace/stages";
 import type { AppDb } from "../client";
 import { newId, nowIso } from "../ids";
 import { drafts, projects, writingSuggestions } from "../schema";
@@ -44,7 +46,7 @@ function toDto(row: ProjectRow): ProjectDto {
   return {
     id: row.id,
     title: row.title,
-    stage: row.stage,
+    stage: coerceProjectStage(row.stage),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -153,4 +155,17 @@ export function loadCurrentProjectPayload(db: AppDb): CurrentProjectPayload {
     suggestions: draft ? listSuggestionsByDraft(db, draft.id) : [],
     suggestionsSummary: loadSuggestionsSummary(db, project.id),
   };
+}
+
+/**
+ * Wipe all local projects (cascade children) and bootstrap a fresh empty one.
+ * MVP is single-project; this is "start from scratch".
+ */
+export function startNewProject(db: AppDb): CurrentProjectPayload {
+  const existing = db.select({ id: projects.id }).from(projects).all();
+  for (const row of existing) {
+    deleteProjectUploadsDir(row.id);
+  }
+  db.delete(projects).run();
+  return loadCurrentProjectPayload(db);
 }

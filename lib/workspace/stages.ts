@@ -1,9 +1,4 @@
-export const PROJECT_STAGES = [
-  "sources",
-  "research",
-  "draft",
-  "writing",
-] as const;
+export const PROJECT_STAGES = ["sources", "research", "compose"] as const;
 
 export type ProjectStage = (typeof PROJECT_STAGES)[number];
 
@@ -16,9 +11,17 @@ export type StageMeta = {
 export const STAGE_META: StageMeta[] = [
   { id: "sources", label: "Sources", shortLabel: "Sources" },
   { id: "research", label: "Research", shortLabel: "Research" },
-  { id: "draft", label: "Draft", shortLabel: "Draft" },
-  { id: "writing", label: "Writing", shortLabel: "Writing" },
+  { id: "compose", label: "Compose", shortLabel: "Compose" },
 ];
+
+/** Map legacy draft/writing stages onto compose. */
+export function coerceProjectStage(value: string): ProjectStage {
+  if (value === "draft" || value === "writing" || value === "compose") {
+    return "compose";
+  }
+  if (value === "research") return "research";
+  return "sources";
+}
 
 export function isProjectStage(value: string): value is ProjectStage {
   return (PROJECT_STAGES as readonly string[]).includes(value);

@@ -31,37 +31,36 @@ function SourceChips({
   sourceIds: string[];
   sourcesById: Map<string, SourceDto>;
 }) {
-  return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {sourceIds.map((id) => {
-        const source = sourcesById.get(id);
-        const label = source?.title?.trim() || source?.url || id.slice(0, 8);
-        if (source?.url) {
-          return (
-            <a
-              key={id}
-              href={source.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded border border-border bg-sage-tint font-mono text-[10px] tracking-wide text-accent underline-offset-2 hover:underline"
-              style={{ padding: "2px 8px" }}
-            >
-              {label}
-            </a>
-          );
-        }
-        return (
-          <span
-            key={id}
-            className="rounded border border-border bg-surface-subtle font-mono text-[10px] tracking-wide text-ink-secondary"
-            style={{ padding: "2px 8px" }}
-          >
-            {label}
-          </span>
-        );
-      })}
-    </div>
-  );
+  const chips = sourceIds.flatMap((id) => {
+    const source = sourcesById.get(id);
+    const label = source?.title?.trim() || source?.url || "";
+    if (!label) return [];
+    if (source?.url) {
+      return [
+        <a
+          key={id}
+          href={source.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded border border-border bg-surface-subtle font-mono text-[11px] text-ink-secondary underline-offset-2 hover:underline"
+          style={{ padding: "2px 8px" }}
+        >
+          {label}
+        </a>,
+      ];
+    }
+    return [
+      <span
+        key={id}
+        className="rounded border border-border bg-surface-subtle font-mono text-[10px] tracking-wide text-ink-secondary"
+        style={{ padding: "2px 8px" }}
+      >
+        {label}
+      </span>,
+    ];
+  });
+  if (chips.length === 0) return null;
+  return <div className="mt-2 flex flex-wrap gap-2">{chips}</div>;
 }
 
 export function ResearchStage({
@@ -239,7 +238,7 @@ export function ResearchStage({
         <ul className="mt-3 flex flex-col gap-3" style={{ margin: 0, padding: 0, listStyle: "none" }}>
           {brief.analysis.map((item, index) => (
             <li key={`analysis-${index}`}>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground" style={{ margin: 0 }}>
+              <p className="font-mono text-[11px] text-muted-foreground" style={{ margin: 0 }}>
                 {item.kind}
               </p>
               <div className="mt-1">
@@ -265,44 +264,6 @@ export function ResearchStage({
         </ul>
       </section>
 
-      <section className="rounded-lg border border-border bg-surface p-4 shadow-sm sm:p-5">
-        <h3 className="font-display text-xl text-foreground" style={{ margin: 0 }}>
-          Newsletter angles
-        </h3>
-        <p className="font-mono text-[11px] text-muted-foreground" style={{ margin: "8px 0 0" }}>
-          Select an angle to take into draft generation.
-        </p>
-        <div
-          className="mt-3 flex flex-col gap-2"
-          role="radiogroup"
-          aria-label="Select newsletter angle"
-        >
-          {brief.angles.map((angle) => {
-            const selected = selectedAngleId === angle.id;
-            return (
-              <button
-                key={angle.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                disabled={busy}
-                onClick={() => onSelectedAngleIdChange(angle.id)}
-                className={`rounded-lg border text-left transition-colors ${
-                  selected
-                    ? "border-secondary bg-terracotta-tint text-foreground"
-                    : "border-border bg-surface text-ink-secondary hover:bg-surface-subtle"
-                }`}
-                style={{ padding: "var(--space-md)", minHeight: 44 }}
-              >
-                <span className="font-display text-lg">{angle.title}</span>
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  {angle.description}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 
@@ -372,12 +333,12 @@ export function ResearchStage({
         </button>
         <button
           type="button"
-          disabled={!canContinue || busy || !selectedAngleId}
+          disabled={!canContinue || busy}
           onClick={onContinueToDraft}
           className="cursor-pointer rounded bg-primary px-5 font-mono text-[11px] tracking-wide text-on-primary disabled:cursor-not-allowed disabled:opacity-40"
           style={{ minHeight: 44 }}
         >
-          Continue to draft
+          Continue to Compose
         </button>
       </div>
     </div>

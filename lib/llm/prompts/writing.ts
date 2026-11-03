@@ -1,10 +1,14 @@
-// prompt-version: writing@1.0.0
+// prompt-version: writing@1.1.0
 
 export function buildWritingSystemInstruction(): string {
   return [
     "You are a careful editorial writing assistant for This Week in AI.",
     "For each flagged span, explain the issue briefly and propose a meaning-preserving rewrite.",
     "Preserve technical terms, numbers, product names, and author intent.",
+    "Category guidance:",
+    "jargon — prefer a plain gloss or shorter phrasing; do NOT delete necessary technical terms; if the term must stay, rewrite the surrounding clause for clarity.",
+    "adverb — tighten by dropping or replacing the weak intensifier without inventing facts.",
+    "weasel — replace hedges with clearer attribution or a direct claim only when the draft already supports it; otherwise clarify uncertainty honestly.",
     "Do NOT optimize for readability scores. Clarity without losing nuance.",
     "Return ONLY valid JSON matching the requested schema.",
   ].join(" ");

@@ -11,6 +11,7 @@ export {
   getOrCreateCurrent,
   loadCurrentProjectPayload,
   loadSuggestionsSummary,
+  startNewProject,
   updateCurrent,
   type CurrentProjectPayload,
   type ProjectDto,
@@ -36,9 +37,14 @@ export {
   type BriefLightUpdate,
 } from "./repos/research";
 export {
+  addDraftSection,
   applyWorkingPlainAndSyncSections,
+  changeAngleClearDraft,
+  createBlankDraft,
+  deleteDraftSection,
   getDraftByProject,
   parseWorkingPlainToSections,
+  reorderDraftSections,
   replaceDraftGraph,
   setOriginalSnapshotIfEmpty,
   updateDraftSection,
@@ -46,7 +52,10 @@ export {
 } from "./repos/drafts";
 export {
   clearPendingForDraft,
+  clearPendingFromOffset,
+  deleteAllForDraft,
   getSuggestionById,
+  insertPendingSuggestions,
   listSuggestionsByDraft,
   markSuggestionStatus,
   replacePendingSuggestions,

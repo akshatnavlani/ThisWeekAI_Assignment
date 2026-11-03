@@ -5,7 +5,7 @@ function overlaps(a: DetectedIssue, b: DetectedIssue): boolean {
   return a.startOffset < b.endOffset && b.startOffset < a.endOffset;
 }
 
-/** Greedy non-overlap: priority complexity > passive > filler, then earlier start. */
+/** Greedy non-overlap: complex > jargon > passive > adverb > filler > weasel. */
 export function resolveOverlaps(issues: DetectedIssue[]): DetectedIssue[] {
   const sorted = [...issues].sort((a, b) => {
     const pa = CATEGORY_PRIORITY[a.category as SuggestionCategory] ?? 99;

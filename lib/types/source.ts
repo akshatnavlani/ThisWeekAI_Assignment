@@ -8,6 +8,7 @@ export type SourceDto = {
   modality: string;
   status: string;
   errorMessage: string | null;
+  imageUrl: string | null;
   rawMetaJson: string | null;
   createdAt: string;
   updatedAt: string;

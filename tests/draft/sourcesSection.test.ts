@@ -12,6 +12,7 @@ function source(partial: Partial<SourceDto> & { id: string }): SourceDto {
     modality: "paste",
     status: "ready",
     errorMessage: null,
+    imageUrl: null,
     rawMetaJson: null,
     createdAt: "t",
     updatedAt: "t",

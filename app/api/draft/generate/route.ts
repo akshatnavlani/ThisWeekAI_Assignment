@@ -31,8 +31,8 @@ export async function POST(request: Request) {
     const db = getDb();
     const project = getOrCreateCurrent(db);
     const draft = await generateDraftForProject(db, project.id, parsed.data);
-    if (project.stage !== "draft") {
-      updateCurrent(db, { stage: "draft" });
+    if (project.stage !== "compose") {
+      updateCurrent(db, { stage: "compose" });
     }
     return Response.json({ draft });
   } catch (err) {

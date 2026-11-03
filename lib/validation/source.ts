@@ -67,5 +67,35 @@ export const patchSourceSchema = z
     }
   });
 
+export const mixedSourceSchema = z
+  .object({
+    text: z.string().max(PASTE_MAX_CHARS).optional(),
+    url: z.string().trim().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const text = value.text?.trim() ?? "";
+    const url = value.url?.trim() ?? "";
+    if (!text && !url) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Provide mixed text and/or a URL",
+        path: ["text"],
+      });
+    }
+    if (url) {
+      try {
+        // eslint-disable-next-line no-new
+        new URL(url);
+      } catch {
+        ctx.addIssue({
+          code: "custom",
+          message: "Invalid URL",
+          path: ["url"],
+        });
+      }
+    }
+  });
+
 export type CreateSourceInput = z.infer<typeof createSourceSchema>;
 export type PatchSourceInput = z.infer<typeof patchSourceSchema>;
+export type MixedSourceInput = z.infer<typeof mixedSourceSchema>;

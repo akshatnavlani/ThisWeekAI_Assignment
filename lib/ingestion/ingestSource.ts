@@ -7,6 +7,8 @@ import {
   type SourceStatus,
 } from "./classify";
 import { extractArticle } from "./extractArticle";
+import { extractMentionedUrls } from "./extractMentionedUrls";
+import { extractOgImage } from "./extractOgImage";
 import { FetchPageError, safeFetchPage } from "./fetchPage";
 import { SsrfError } from "./ssrf";
 import { fetchTweetByUrl, XTweetError } from "./xTweet";
@@ -18,7 +20,23 @@ export type IngestInput = {
   kind?: SourceKind;
   /** Existing paste to preserve when reingest network path fails */
   existingContent?: string | null;
+  /** Preserve uploaded image across reingest when network path fails */
+  existingImageUrl?: string | null;
+  /** Remote image from mixed paste segregation (overridden by upload path) */
+  imageUrlHint?: string | null;
 };
+
+function withMentions(
+  meta: Record<string, unknown>,
+  body: string,
+  selfUrl: string | null,
+): string {
+  const mentionedUrls = extractMentionedUrls(body, { excludeUrl: selfUrl });
+  return JSON.stringify({
+    ...meta,
+    ...(mentionedUrls.length ? { mentionedUrls } : {}),
+  });
+}
 
 export type IngestResult = {
   kind: SourceKind;
@@ -28,6 +46,7 @@ export type IngestResult = {
   modality: SourceModality;
   status: SourceStatus;
   errorMessage: string | null;
+  imageUrl: string | null;
   rawMetaJson: string | null;
 };
 
@@ -53,6 +72,15 @@ export async function ingestSource(
   const existing = trimOrNull(input.existingContent ?? undefined);
   const kind = resolveKind(url, input.kind);
   const titleHint = trimOrNull(input.title ?? undefined);
+  const existingImage = trimOrNull(input.existingImageUrl ?? undefined);
+  const imageHint = trimOrNull(input.imageUrlHint ?? undefined);
+  const resolveImage = (...candidates: Array<string | null | undefined>) => {
+    for (const c of candidates) {
+      const t = trimOrNull(c ?? undefined);
+      if (t) return t;
+    }
+    return null;
+  };
 
   // Paste-only path — no network
   if (!url && paste) {
@@ -64,7 +92,8 @@ export async function ingestSource(
       modality: "paste",
       status: "ready",
       errorMessage: null,
-      rawMetaJson: null,
+      imageUrl: resolveImage(existingImage, imageHint),
+      rawMetaJson: withMentions({}, paste, null),
     };
   }
 
@@ -77,6 +106,7 @@ export async function ingestSource(
       modality: "paste",
       status: "failed",
       errorMessage: "URL or pasted content is required",
+      imageUrl: existingImage,
       rawMetaJson: null,
     };
   }
@@ -98,11 +128,16 @@ export async function ingestSource(
         }),
         status: "ready",
         errorMessage: null,
-        rawMetaJson: JSON.stringify({
-          provider: "x",
-          tweetId: tweet.id,
-          authorId: tweet.authorId,
-        }),
+        imageUrl: resolveImage(existingImage, imageHint),
+        rawMetaJson: withMentions(
+          {
+            provider: "x",
+            tweetId: tweet.id,
+            authorId: tweet.authorId,
+          },
+          content,
+          url,
+        ),
       };
     } catch (err) {
       const message =
@@ -118,6 +153,7 @@ export async function ingestSource(
           modality: "url_and_paste",
           status: "ready",
           errorMessage: message,
+          imageUrl: existingImage,
           rawMetaJson: null,
         };
       }
@@ -129,6 +165,7 @@ export async function ingestSource(
         modality: "url",
         status: existing ? "ready" : "needs_content",
         errorMessage: message,
+        imageUrl: existingImage,
         rawMetaJson: null,
       };
     }
@@ -146,6 +183,12 @@ export async function ingestSource(
       ? `${extracted.textContent}\n\n${paste}`
       : extracted.textContent;
 
+    const ogImage = extractOgImage(page.body, page.finalUrl);
+    // Upload path wins; then hint from mixed paste; then og:image
+    const imageUrl = existingImage?.startsWith("/api/uploads/")
+      ? existingImage
+      : resolveImage(imageHint, ogImage, existingImage);
+
     return {
       kind,
       url,
@@ -158,11 +201,17 @@ export async function ingestSource(
       }),
       status: "ready",
       errorMessage: null,
-      rawMetaJson: JSON.stringify({
-        finalUrl: page.finalUrl,
-        contentType: page.contentType,
-        excerpt: extracted.excerpt,
-      }),
+      imageUrl,
+      rawMetaJson: withMentions(
+        {
+          finalUrl: page.finalUrl,
+          contentType: page.contentType,
+          excerpt: extracted.excerpt,
+          ogImageUrl: ogImage,
+        },
+        content,
+        url,
+      ),
     };
   } catch (err) {
     const message =
@@ -180,6 +229,7 @@ export async function ingestSource(
         modality: "url_and_paste",
         status: "ready",
         errorMessage: message,
+        imageUrl: existingImage,
         rawMetaJson: null,
       };
     }
@@ -192,6 +242,7 @@ export async function ingestSource(
       modality: "url",
       status: existing ? "ready" : "needs_content",
       errorMessage: message,
+      imageUrl: existingImage,
       rawMetaJson: null,
     };
   }

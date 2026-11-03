@@ -104,6 +104,26 @@ describe("regenerateDraftSection", () => {
     expect(updated.originalSnapshot).toBe(snapshot);
   });
 
+  it("accepts regen when model key mismatches but title matches", async () => {
+    const { db, project } = await seedDraft();
+    const updated = await regenerateDraftSection(
+      db,
+      project.id,
+      "what_happened",
+      {
+        generateJson: async () =>
+          JSON.stringify({
+            key: "WhatHappened",
+            title: "What happened",
+            content: "Vendors cut latency overnight.",
+          }),
+      },
+    );
+    expect(
+      updated.sections.find((s) => s.key === "what_happened")?.content,
+    ).toBe("Vendors cut latency overnight.");
+  });
+
   it("refreshes sources without calling the LLM", async () => {
     const { db, project, snapshot } = await seedDraft();
     let called = false;

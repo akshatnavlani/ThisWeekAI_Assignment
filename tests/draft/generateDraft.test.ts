@@ -160,16 +160,15 @@ describe("generateDraftForProject", () => {
     expect(getDraftByProject(db, project.id)?.id).toBe(second.id);
   });
 
-  it("outline_only does not set original snapshot", async () => {
+  it("blank draft starts with empty headline and no snapshot", async () => {
     const { db, project, angleId } = await seedBriefWithSources();
-    const draft = await generateDraftForProject(
-      db,
-      project.id,
-      { mode: "outline_only", angleId },
-      { generateJson: async () => validDraftJson() },
-    );
-    expect(draft.mode).toBe("outline_only");
+    const { createBlankDraft } = await import("@/lib/db/repos/drafts");
+    const draft = createBlankDraft(db, project.id, angleId);
+    expect(draft.mode).toBe("blank");
     expect(draft.isAiStarter).toBe(false);
+    expect(draft.awaitingStart).toBe(false);
+    expect(draft.sections).toHaveLength(1);
+    expect(draft.sections[0]?.key).toBe("headline");
     expect(draft.originalSnapshot).toBeNull();
   });
 

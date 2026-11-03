@@ -26,7 +26,7 @@ afterEach(() => {
 
 function seedOutlineDraft(db: ReturnType<typeof getDb>, projectId: string) {
   return replaceDraftGraph(db, projectId, {
-    mode: "outline_only",
+    mode: "blank",
     selectedAngleId: null,
     sections: [
       { key: "headline", content: "Quiet models" },
@@ -61,7 +61,7 @@ describe("analyzeDraftForProject", () => {
     const db = getDb(tempDbPath());
     const project = getOrCreateCurrent(db);
     replaceDraftGraph(db, project.id, {
-      mode: "outline_only",
+      mode: "blank",
       selectedAngleId: null,
       sections: [
         { key: "headline", content: "" },
@@ -103,5 +103,48 @@ describe("analyzeDraftForProject", () => {
     expect(result.metrics.wordCount).toBeGreaterThan(0);
     const draft = getDraftByProject(db, project.id);
     expect(draft?.originalSnapshot).toBeTruthy();
+  });
+
+  it("partial sectionKeys reanalyzes from earliest touched offset", async () => {
+    const db = getDb(tempDbPath());
+    const project = getOrCreateCurrent(db);
+    seedOutlineDraft(db, project.id);
+
+    const mockLlm = async ({ userPrompt }: { userPrompt: string }) => {
+      const indices = [...userPrompt.matchAll(/\[(\d+)\] category=/g)].map(
+        (m) => Number(m[1]),
+      );
+      return JSON.stringify({
+        suggestions: indices.map((index) => ({
+          index,
+          explanation: `Issue ${index}`,
+          rewrite: `Rewrite ${index}`,
+        })),
+      });
+    };
+
+    const full = await analyzeDraftForProject(db, project.id, {
+      generateJson: mockLlm,
+    });
+    const earlyPending = full.suggestions.filter(
+      (s) => s.status === "pending" && s.startOffset < 40,
+    );
+
+    const partial = await analyzeDraftForProject(db, project.id, {
+      sectionKeys: ["sources"],
+      generateJson: mockLlm,
+    });
+
+    // Early pending suggestions (before sources) should survive a sources-only reanalyze
+    for (const s of earlyPending) {
+      expect(
+        partial.suggestions.some(
+          (p) =>
+            p.status === "pending" &&
+            p.startOffset === s.startOffset &&
+            p.passage === s.passage,
+        ),
+      ).toBe(true);
+    }
   });
 });

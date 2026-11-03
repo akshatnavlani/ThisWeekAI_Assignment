@@ -2,6 +2,7 @@ export {
   extractTweetId,
   isTweetUrl,
   normalizeUrl,
+  repairHostname,
   resolveKind,
   resolveModality,
   type SourceKind,
@@ -10,6 +11,11 @@ export {
 } from "./classify";
 export { PASTE_MAX_CHARS } from "./constants";
 export { extractArticle } from "./extractArticle";
+export {
+  extractMentionedUrls,
+  parseMentionedUrlsFromMeta,
+} from "./extractMentionedUrls";
+export { extractOgImage } from "./extractOgImage";
 export { FetchPageError, safeFetchPage } from "./fetchPage";
 export {
   ingestSource,
@@ -17,6 +23,12 @@ export {
   type IngestInput,
   type IngestResult,
 } from "./ingestSource";
+export {
+  parseMixedInput,
+  planMixedIngest,
+  type MixedIngestPlanItem,
+  type MixedParseResult,
+} from "./parseMixedInput";
 export {
   assertSafeUrl,
   isBlockedIp,

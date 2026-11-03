@@ -79,12 +79,36 @@ export function clearPendingForDraft(db: AppDb, draftId: string): void {
     .run();
 }
 
-export function replacePendingSuggestions(
+/** Drop pending suggestions that start at or after `fromOffset` (stale after earlier edits). */
+export function clearPendingFromOffset(
+  db: AppDb,
+  draftId: string,
+  fromOffset: number,
+): void {
+  const pending = db
+    .select()
+    .from(writingSuggestions)
+    .where(
+      and(
+        eq(writingSuggestions.draftId, draftId),
+        eq(writingSuggestions.status, "pending"),
+      ),
+    )
+    .all();
+  for (const row of pending) {
+    if (row.startOffset >= fromOffset) {
+      db.delete(writingSuggestions)
+        .where(eq(writingSuggestions.id, row.id))
+        .run();
+    }
+  }
+}
+
+export function insertPendingSuggestions(
   db: AppDb,
   draftId: string,
   rows: NewPendingSuggestion[],
 ): SuggestionDto[] {
-  clearPendingForDraft(db, draftId);
   const now = nowIso();
   for (const row of rows) {
     db.insert(writingSuggestions)
@@ -103,6 +127,21 @@ export function replacePendingSuggestions(
       .run();
   }
   return listSuggestionsByDraft(db, draftId);
+}
+
+export function deleteAllForDraft(db: AppDb, draftId: string): void {
+  db.delete(writingSuggestions)
+    .where(eq(writingSuggestions.draftId, draftId))
+    .run();
+}
+
+export function replacePendingSuggestions(
+  db: AppDb,
+  draftId: string,
+  rows: NewPendingSuggestion[],
+): SuggestionDto[] {
+  clearPendingForDraft(db, draftId);
+  return insertPendingSuggestions(db, draftId, rows);
 }
 
 export function markSuggestionStatus(

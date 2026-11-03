@@ -5,9 +5,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   getDb,
   getOrCreateCurrent,
+  insertSource,
   resetDbSingleton,
+  startNewProject,
   updateCurrent,
 } from "@/lib/db";
+import { ingestSource } from "@/lib/ingestion";
 import { patchProjectSchema } from "@/lib/validation/project";
 
 function tempDbPath(): string {
@@ -60,6 +63,28 @@ describe("projects repo", () => {
   });
 });
 
+describe("startNewProject", () => {
+  it("wipes sources and returns a fresh empty project on sources stage", async () => {
+    const dbPath = tempDbPath();
+    const db = getDb(dbPath);
+    const created = getOrCreateCurrent(db);
+    updateCurrent(db, { title: "Old editorial", stage: "research" });
+    const ingested = await ingestSource({
+      content: "Body for wipe test",
+      title: "Old source",
+    });
+    insertSource(db, created.id, ingested);
+
+    const payload = startNewProject(db);
+    expect(payload.project.id).not.toBe(created.id);
+    expect(payload.project.title).toBe("Untitled editorial");
+    expect(payload.project.stage).toBe("sources");
+    expect(payload.sources).toHaveLength(0);
+    expect(payload.brief).toBeNull();
+    expect(payload.draft).toBeNull();
+  });
+});
+
 describe("patchProjectSchema", () => {
   it("rejects empty body", () => {
     const result = patchProjectSchema.safeParse({});
@@ -72,7 +97,7 @@ describe("patchProjectSchema", () => {
   });
 
   it("accepts valid stage update", () => {
-    const result = patchProjectSchema.safeParse({ stage: "draft" });
+    const result = patchProjectSchema.safeParse({ stage: "compose" });
     expect(result.success).toBe(true);
   });
 });

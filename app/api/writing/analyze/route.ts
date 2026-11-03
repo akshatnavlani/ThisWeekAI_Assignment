@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { apiError } from "@/lib/api/errors";
 import {
   getDb,
@@ -16,13 +17,39 @@ import {
   LlmSetupError,
 } from "@/lib/writing/suggestRewrites";
 
-export async function POST() {
+const analyzeBodySchema = z
+  .object({
+    sectionKeys: z.array(z.string().trim().min(1)).optional(),
+  })
+  .optional();
+
+export async function POST(request: Request) {
+  let sectionKeys: string[] | undefined;
+  try {
+    const text = await request.text();
+    if (text.trim()) {
+      const parsed = analyzeBodySchema.safeParse(JSON.parse(text));
+      if (!parsed.success) {
+        return apiError(
+          "INVALID_BODY",
+          parsed.error.issues.map((i) => i.message).join("; "),
+          400,
+        );
+      }
+      sectionKeys = parsed.data?.sectionKeys;
+    }
+  } catch {
+    return apiError("INVALID_BODY", "Request body must be JSON", 400);
+  }
+
   try {
     const db = getDb();
     const project = getOrCreateCurrent(db);
-    const result = await analyzeDraftForProject(db, project.id);
-    if (project.stage !== "writing") {
-      updateCurrent(db, { stage: "writing" });
+    const result = await analyzeDraftForProject(db, project.id, {
+      sectionKeys,
+    });
+    if (project.stage !== "compose") {
+      updateCurrent(db, { stage: "compose" });
     }
     const draft = getDraftByProject(db, project.id);
     return Response.json({

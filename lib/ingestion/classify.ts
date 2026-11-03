@@ -52,8 +52,44 @@ export function resolveModality(input: {
   return "url";
 }
 
+/**
+ * Repair hostnames that lost dots in paste/OCR (e.g. wwwforbescom → www.forbes.com).
+ * Leaves already-dotted hosts and IPs unchanged.
+ */
+export function repairHostname(hostname: string): string {
+  const host = hostname.trim().toLowerCase().replace(/\.$/, "");
+  if (!host || host.includes(".") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    return host;
+  }
+
+  // Common encyclopedia OCR: enwikipediaorg / wikipediaorg
+  if (/^(en)?wikipediaorg$/.test(host)) {
+    return "en.wikipedia.org";
+  }
+
+  const wwwTld = host.match(
+    /^(www)([a-z0-9-]+)(com|org|net|edu|io|co|ai|info|gov|uk)$/i,
+  );
+  if (wwwTld) {
+    return `${wwwTld[1]}.${wwwTld[2]}.${wwwTld[3]}`.toLowerCase();
+  }
+
+  const bareTld = host.match(
+    /^([a-z0-9-]+)(com|org|net|edu|io|co|ai|info|gov)$/i,
+  );
+  if (bareTld) {
+    return `${bareTld[1]}.${bareTld[2]}`.toLowerCase();
+  }
+
+  return host;
+}
+
 export function normalizeUrl(raw: string): string {
   const u = new URL(raw.trim());
   u.hash = "";
+  const repaired = repairHostname(u.hostname);
+  if (repaired && repaired !== u.hostname.toLowerCase()) {
+    u.hostname = repaired;
+  }
   return u.toString();
 }

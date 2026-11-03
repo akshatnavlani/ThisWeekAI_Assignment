@@ -41,6 +41,7 @@ yarn-error.log*
 # database + local capture artifacts
 /data/*.db
 /data/*.db-*
+/data/uploads/
 /data/*.json
 *.db
 *.db-journal
@@ -55,3 +56,5 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+/artifacts/

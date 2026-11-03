@@ -86,7 +86,7 @@ export function SuggestionMark({
           onMouseLeave={() => setOpen(false)}
         >
           <p
-            className="font-mono text-[10px] uppercase tracking-wider"
+            className="font-mono text-[11px]"
             style={{
               margin: 0,
               color: CATEGORY_HIGHLIGHT_FG[suggestion.category],
@@ -105,7 +105,7 @@ export function SuggestionMark({
               className="mt-2 rounded border border-border-hairline bg-surface-subtle p-2 text-sm text-foreground"
               style={{ margin: "8px 0 0" }}
             >
-              <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+              <span className="font-mono text-[11px] text-muted-foreground">
                 Rewrite
               </span>
               <span className="mt-1 block">{suggestion.rewrite}</span>

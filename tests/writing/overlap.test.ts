@@ -40,4 +40,44 @@ describe("resolveOverlaps", () => {
     ];
     expect(resolveOverlaps(issues)).toHaveLength(2);
   });
+
+  it("keeps jargon over passive on overlapping spans", () => {
+    const issues: DetectedIssue[] = [
+      {
+        category: "passive",
+        passage: "QTX was shipped",
+        startOffset: 0,
+        endOffset: 14,
+      },
+      {
+        category: "jargon",
+        passage: "QTX",
+        startOffset: 0,
+        endOffset: 3,
+      },
+    ];
+    const resolved = resolveOverlaps(issues);
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0]?.category).toBe("jargon");
+  });
+
+  it("keeps adverb over filler when overlapping", () => {
+    const issues: DetectedIssue[] = [
+      {
+        category: "filler",
+        passage: "clearly very",
+        startOffset: 0,
+        endOffset: 12,
+      },
+      {
+        category: "adverb",
+        passage: "clearly",
+        startOffset: 0,
+        endOffset: 7,
+      },
+    ];
+    const resolved = resolveOverlaps(issues);
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0]?.category).toBe("adverb");
+  });
 });

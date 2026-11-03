@@ -19,6 +19,7 @@ function toDto(row: SourceRow): SourceDto {
     modality: row.modality,
     status: row.status,
     errorMessage: row.errorMessage,
+    imageUrl: row.imageUrl,
     rawMetaJson: row.rawMetaJson,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -96,6 +97,7 @@ export function insertSource(
     modality: ingested.modality,
     status: ingested.status,
     errorMessage: ingested.errorMessage,
+    imageUrl: ingested.imageUrl,
     rawMetaJson: ingested.rawMetaJson,
     createdAt: now,
     updatedAt: now,
@@ -126,6 +128,7 @@ export function updateSourceFromIngest(
       modality: ingested.modality,
       status: ingested.status,
       errorMessage: ingested.errorMessage,
+      imageUrl: ingested.imageUrl,
       rawMetaJson: ingested.rawMetaJson,
       updatedAt,
     })
@@ -144,6 +147,7 @@ export function updateSourceFields(
     modality: string;
     status: string;
     errorMessage: string | null;
+    imageUrl: string | null;
     url: string | null;
     kind: string;
     rawMetaJson: string | null;

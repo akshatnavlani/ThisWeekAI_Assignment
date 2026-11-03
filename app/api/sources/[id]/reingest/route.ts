@@ -4,7 +4,7 @@ import {
   getSourceById,
   updateSourceFromIngest,
 } from "@/lib/db";
-import { ingestSource } from "@/lib/ingestion";
+import { ingestSource, normalizeUrl } from "@/lib/ingestion";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -28,12 +28,20 @@ export async function POST(_request: Request, context: RouteContext) {
     const existingPaste =
       existing.content.trim().length > 0 ? existing.content : null;
 
+    let url = existing.url;
+    try {
+      url = normalizeUrl(existing.url);
+    } catch {
+      // keep stored url; ingest will surface the failure
+    }
+
     const ingested = await ingestSource({
-      url: existing.url,
+      url,
       title: existing.title,
       kind: existing.kind as "article" | "tweet" | "other",
       // Do not pass content as new paste — preserve on failure via existingContent
       existingContent: existingPaste,
+      existingImageUrl: existing.imageUrl,
     });
 
     // If network failed but we kept existing paste as ready content, OK.

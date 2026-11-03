@@ -9,6 +9,7 @@ import {
   updateSourceFromIngest,
 } from "@/lib/db";
 import { ingestSource, normalizeUrl } from "@/lib/ingestion";
+import { deleteUploadIfLocal } from "@/lib/uploads/paths";
 import { patchSourceSchema } from "@/lib/validation/source";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -67,8 +68,49 @@ export async function PATCH(request: Request, context: RouteContext) {
     const pasteProvided = parsed.data.content !== undefined;
     const kind = parsed.data.kind ?? (existing.kind as "article" | "tweet" | "other");
 
-    // Full re-ingest when URL changes or paste recovery / content update with URL
-    if (urlChanged || (pasteProvided && (nextUrl || parsed.data.content))) {
+    // Paste recovery / content edit without URL change — do not re-fetch (sites may 403).
+    if (pasteProvided && !urlChanged) {
+      const trimmed = (parsed.data.content ?? "").trim();
+      if (!trimmed) {
+        return apiError(
+          "VALIDATION_ERROR",
+          "Paste some content before saving recovery",
+          400,
+        );
+      }
+
+      let title =
+        parsed.data.title !== undefined
+          ? parsed.data.title
+          : existing.title;
+      if (!title?.trim()) {
+        const firstLine = trimmed
+          .split(/\n/)
+          .map((l) => l.trim())
+          .find((l) => l.length > 0);
+        if (
+          firstLine &&
+          firstLine.length <= 120 &&
+          !/^https?:\/\//i.test(firstLine)
+        ) {
+          title = firstLine;
+        }
+      }
+
+      const source = updateSourceFields(db, id, {
+        content: trimmed,
+        title: title ?? existing.title,
+        kind,
+        status: "ready",
+        modality: nextUrl ? "url_and_paste" : "paste",
+        errorMessage: null,
+        url: nextUrl,
+      });
+      return Response.json({ source });
+    }
+
+    // Full re-ingest when URL changes (optional paste travels with it)
+    if (urlChanged) {
       const ingested = await ingestSource({
         url: nextUrl,
         title:
@@ -84,6 +126,7 @@ export async function PATCH(request: Request, context: RouteContext) {
           !pasteProvided && existing.content.trim()
             ? existing.content
             : undefined,
+        existingImageUrl: existing.imageUrl,
       });
 
       const source = updateSourceFromIngest(
@@ -124,6 +167,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
         409,
       );
     }
+    deleteUploadIfLocal(existing.imageUrl);
     deleteSource(db, id);
     return Response.json({ ok: true });
   } catch (err) {

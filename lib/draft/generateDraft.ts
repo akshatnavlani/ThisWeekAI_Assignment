@@ -16,7 +16,11 @@ import {
   geminiDraftSchema,
   normalizeDraftSections,
 } from "@/lib/llm/schemas/draft";
-import type { DraftDto, DraftMode } from "@/lib/types/draft";
+import type { DraftDto } from "@/lib/types/draft";
+import {
+  STARTER_SECTION_PURPOSES,
+  STARTER_SECTION_TITLES,
+} from "@/lib/types/draft";
 import { LlmOutputInvalidError } from "@/lib/research/generateBrief";
 import { buildSourcesSectionContent } from "./buildSourcesSection";
 import {
@@ -40,7 +44,7 @@ export class InvalidAngleError extends Error {
 }
 
 export type GenerateDraftInput = {
-  mode: Extract<DraftMode, "starter_draft" | "outline_only">;
+  mode: "starter_draft";
   angleId: string;
   angleOverride?: string;
 };
@@ -48,7 +52,15 @@ export type GenerateDraftInput = {
 function parseDraftOutput(
   raw: string,
 ):
-  | { ok: true; sections: { key: "headline" | "what_happened" | "context" | "analysis" | "implication"; title: string; content: string }[] }
+  | {
+      ok: true;
+      sections: Array<{
+        key: string;
+        title: string;
+        purpose: string;
+        content: string;
+      }>;
+    }
   | { ok: false; issues: string[] } {
   let parsed: unknown;
   try {
@@ -67,11 +79,7 @@ function parseDraftOutput(
     };
   }
 
-  const normalized = normalizeDraftSections(schema.data);
-  if (!normalized.ok) {
-    return normalized;
-  }
-  return { ok: true, sections: normalized.sections };
+  return normalizeDraftSections(schema.data);
 }
 
 export async function generateDraftForProject(
@@ -98,7 +106,7 @@ export async function generateDraftForProject(
   const angleDescription = angle.description;
   const sources = listSourcesByProject(db, projectId);
   const generateJson = deps.generateJson ?? createGeminiJsonGenerator();
-  const systemInstruction = buildDraftSystemInstruction(input.mode);
+  const systemInstruction = buildDraftSystemInstruction();
   const briefBlock = buildBriefBlock(brief);
   const sourcesBlock = cappedSourcesBlock(sources);
 
@@ -107,7 +115,6 @@ export async function generateDraftForProject(
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const userPrompt = buildDraftUserPrompt({
-      mode: input.mode,
       angleTitle,
       angleDescription,
       briefBlock,
@@ -129,14 +136,26 @@ export async function generateDraftForProject(
     if (result.ok) {
       const sourcesContent = buildSourcesSectionContent(sources);
       return replaceDraftGraph(db, projectId, {
-        mode: input.mode,
+        mode: "starter_draft",
         selectedAngleId: input.angleId,
         sections: [
           ...result.sections.map((s) => ({
             key: s.key,
+            title: s.title,
+            purpose:
+              s.purpose ||
+              STARTER_SECTION_PURPOSES[
+                s.key as keyof typeof STARTER_SECTION_PURPOSES
+              ] ||
+              "",
             content: s.content,
           })),
-          { key: "sources" as const, content: sourcesContent },
+          {
+            key: "sources",
+            title: STARTER_SECTION_TITLES.sources,
+            purpose: STARTER_SECTION_PURPOSES.sources,
+            content: sourcesContent,
+          },
         ],
         setSnapshotIfFirstStarter: true,
       });
