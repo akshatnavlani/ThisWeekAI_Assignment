@@ -2,7 +2,7 @@
 
 **Status:** Phase 3 — ready for review  
 **Persistence:** SQLite (local file, e.g. `data/editorial.db`)  
-**Last updated:** 2026-11-02
+**Last updated:** 2026-11-03
 
 ## 1. Design principles
 
@@ -40,6 +40,7 @@ erDiagram
     text modality
     text status
     text error_message
+    text image_url
     text raw_meta_json
     text created_at
     text updated_at
@@ -106,14 +107,14 @@ erDiagram
 
 | Enum | Values |
 |---|---|
-| `project.stage` | `sources` \| `research` \| `draft` \| `writing` |
+| `project.stage` | `sources` \| `research` \| `compose` (legacy `draft`/`writing` coerce to `compose`) |
 | `source.kind` | `article` \| `tweet` \| `other` |
 | `source.modality` | `url` \| `paste` \| `url_and_paste` \| `x_api` |
 | `source.status` | `pending` \| `ready` \| `needs_content` \| `failed` |
 | `evidence.claim_type` | `fact` \| `analysis` \| `speculation` |
-| `draft.mode` | `starter_draft` \| `outline_only` \| `manual` |
-| `draft_section.section_key` | `headline` \| `what_happened` \| `context` \| `analysis` \| `implication` \| `sources` |
-| `suggestion.category` | `complex` \| `passive` \| `filler` |
+| `draft.mode` | `starter_draft` \| `blank` (legacy `outline_only`/`manual` → `blank`) |
+| `draft_section.section_key` | freeform slug/uuid (starter template may use classic keys) |
+| `suggestion.category` | `complex` \| `jargon` \| `passive` \| `adverb` \| `filler` \| `weasel` (ADR-018) |
 | `suggestion.status` | `pending` \| `accepted` \| `rejected` |
 
 ## 4. Entity details
@@ -131,8 +132,10 @@ erDiagram
 |---|---|---|
 | content | TEXT | extracted or pasted body; empty if needs_content |
 | url | TEXT NULL | unique per project when not null (index) |
-| raw_meta_json | TEXT | optional extractor metadata |
+| image_url | TEXT NULL | display image: upload path (`/api/uploads/...`) or absolute og:image URL; upload wins when set |
+| raw_meta_json | TEXT | optional extractor metadata (may include `ogImageUrl`) |
 | **Usable content rule** | | `status = ready` AND `length(trim(content)) > 0` |
+| **Uploads dir** | | `{dirname(DATABASE_PATH)}/uploads/{projectId}/{sourceId}.{ext}` (ADR-017) |
 
 ### RESEARCH_BRIEF
 | Column | Type | Notes |
@@ -151,9 +154,13 @@ Light edits update these columns directly. Full regenerate replaces child angles
 - Claims: `source_ids_json` is a JSON array of SOURCE.id; validated on write.
 
 ### DRAFT / DRAFT_SECTION
-- `working_plain` = concatenation of sections for detectors/metrics (rebuilt on section change).  
-- `original_snapshot` = plain text baseline for compare (set once).  
-- `sources` section stores citation list (URLs/titles); prefer not LLM-regenerated as prose — regen may refresh formatting from project sources only.
+- `purpose` TEXT on sections (why this section exists; required when user adds a section).  
+- `working_plain` = concatenation for detectors/metrics: headline as `# {content}`, other sections as `## {title}` + body (ADR-019).  
+- MD preview / Copy MD / `.md` / PDF use `articlePlain` (headline H1 + bodies only; no scaffolding `## Title` wrappers).  
+- Section order: `sort_order`; reorder via `POST /api/draft/sections/reorder` `{ orderedKeys }`.  
+- `original_snapshot` = plain text baseline for compare (set once on first starter).  
+- `awaitingStart` (derived): no section rows after Change angle — UI shows Blank/Starter picker.  
+- `sources` section (when present) stores citation list; regen refreshes from project sources only.
 
 ### WRITING_SUGGESTION
 - Offsets are relative to `working_plain` at analysis time.  

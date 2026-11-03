@@ -151,15 +151,21 @@ Base: `/api` · JSON · no auth (MVP)
 |---|---|---|
 | GET | `/api/projects/current` | Load or bootstrap default project (sources, brief, draft, suggestions summary) |
 | PATCH | `/api/projects/current` | Update title/stage |
+| POST | `/api/projects/current/reset` | Wipe workspace and bootstrap a fresh empty project (Sources) |
 | POST | `/api/sources` | Add source `{ url?, title?, content?, kind? }` → ingest |
 | PATCH | `/api/sources/:id` | Update paste/title; re-ingest if URL changed |
 | DELETE | `/api/sources/:id` | Remove source (warn if cited) |
 | POST | `/api/sources/:id/reingest` | Retry fetch/X |
 | POST | `/api/research/generate` | Full brief generate/regen; requires ≥3 ready sources |
 | PATCH | `/api/research/brief` | Light edit structured fields |
-| POST | `/api/draft/generate` | `{ mode: starter_draft\|outline_only, angleId, angleOverride? }` |
-| POST | `/api/draft/sections/:sectionKey/regenerate` | Regen one section |
-| PATCH | `/api/draft/sections/:sectionKey` | Manual edit section content |
+| POST | `/api/draft/generate` | `{ mode: starter_draft, angleId, angleOverride? }` — reject outline_only |
+| POST | `/api/draft/blank` | `{ angleId }` — empty Headline; clear suggestions |
+| POST | `/api/draft/change-angle` | `{ angleId }` — clear sections + suggestions; return to picker |
+| POST | `/api/draft/sections` | `{ title, purpose?, generate? }` — purpose required if generate |
+| POST | `/api/draft/sections/reorder` | `{ orderedKeys }` — permutation of section keys |
+| DELETE | `/api/draft/sections/:sectionKey` | Remove section; rebuild working_plain |
+| POST | `/api/draft/sections/:sectionKey/regenerate` | Regen one section (title + purpose in prompt) |
+| PATCH | `/api/draft/sections/:sectionKey` | Edit title/purpose/content |
 | POST | `/api/writing/analyze` | Run detectors + LLM suggestions; replace pending |
 | POST | `/api/writing/suggestions/:id/accept` | Apply rewrite |
 | POST | `/api/writing/suggestions/:id/reject` | Mark rejected |

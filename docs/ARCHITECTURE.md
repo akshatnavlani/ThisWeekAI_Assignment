@@ -60,7 +60,7 @@ lib/
   ingestion/                    # fetch, readability, x, ssrf
   llm/                          # gemini client, prompts, zod schemas
   research/                     # brief generation
-  draft/                        # starter/outline/section regen
+  draft/                        # starter/blank/change-angle/section CRUD
   writing/                      # detectors, metrics, suggestion merge
   validation/
 components/                     # UI aligned to design system
@@ -77,7 +77,7 @@ docs/
 | Sources service | Add/update sources; trigger ingest; duplicate URL check |
 | Ingestion | SSRF-safe fetch; Readability extract; optional X lookup; status machine |
 | Research service | Build prompt from sources; Gemini structured brief; edit + full regen |
-| Draft service | Starter draft / outline / section regen; keep `original` snapshot |
+| Compose (draft) service | Starter or blank; freeform sections; change-angle clear; keep `original` snapshot |
 | Writing detectors | Deterministic complex / passive / filler; metrics |
 | Writing suggest | Non-overlap resolve; Gemini explain+rewrite; apply accept/reject |
 | Gemini client | Timeouts, retries on malformed JSON, rate-limit surfacing |
@@ -126,7 +126,7 @@ sequenceDiagram
 
   U->>API: POST /api/draft/generate (mode, angleId)
   API->>DB: load brief + sources
-  API->>LLM: starter_draft | outline_only
+  API->>LLM: starter_draft (blank skips LLM)
   LLM-->>API: sections JSON
   API->>API: validate
   API->>DB: save draft; snapshot original_text
@@ -135,7 +135,7 @@ sequenceDiagram
   API->>DB: update section; keep original unless reset policy
 ```
 
-**Original snapshot policy:** On first successful starter-draft generation (or first Analyze if outline/manual), persist `draft.original_snapshot`. Section regen updates **working** content only; original snapshot unchanged until user explicitly “Reset original baseline” (optional MVP: no reset — original stays first snapshot). Accept suggestion updates working text only.
+**Original snapshot policy:** On first successful starter-draft generation (or first Analyze on blank), persist `draft.original_snapshot`. Section regen updates **working** content only; original snapshot unchanged. Change angle clears sections/suggestions and returns to Blank/Starter picker (ADR-019). Accept suggestion updates working text only.
 
 ### 4.3 Writing workflow
 
@@ -181,7 +181,7 @@ Full contracts in §API of `TECHNICAL_REQUIREMENTS.md` (updated). Prefix: `/api`
 ## 6. LLM integration
 
 - **Provider:** Google Gemini only (ADR-010)  
-- **Tasks:** brief generation, draft/outline/section generation, writing explain+rewrite  
+- **Tasks:** brief generation, starter/section generation, writing explain+rewrite  
 - **Not LLM:** URL fetch, detectors, metrics, overlap resolution, SSRF checks  
 - **Prompts:** versioned strings in `lib/llm/prompts/*` with semver comment headers  
 - **Output:** JSON schema prompts + Zod parse; 1 automatic repair retry  

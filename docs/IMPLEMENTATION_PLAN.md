@@ -2,7 +2,7 @@
 
 **Status:** Phase 3 — ready for review  
 **Gate:** No coding until `APPROVE PLAN AND AUTHORIZE IMPLEMENTATION`  
-**Last updated:** 2026-11-02
+**Last updated:** 2026-11-03
 
 ## Dependency graph
 
@@ -19,6 +19,7 @@ flowchart TD
   M2 --> M6
   M6 --> M7[M7 E2E polish + sample artifacts]
   M7 --> M8[M8 Deploy + README finalize]
+  M8 --> M9[M9 Testing + edge UX]
 ```
 
 ---
@@ -118,7 +119,7 @@ flowchart TD
 | | |
 |---|---|
 | **ID** | M5 |
-| **Objective** | Angle → starter draft or outline; per-section regenerate |
+| **Objective** | Compose: angle → Blank or Starter; freeform sections; writing assist (ADR-019) |
 | **Scope** | Draft APIs; sectioned editor; original snapshot policy |
 | **Tasks** | Implement modes; section regen; label AI starter |
 | **Files** | `lib/draft/**`, `app/api/draft/**`, Draft UI |
@@ -182,6 +183,24 @@ flowchart TD
 | **Acceptance** | NFR-006; ADR-006; ADR-015 |
 | **DoD** | README matches real commands tested; no secrets/`*.db` in image or git |
 | **Risks** | R-10 (mitigated by volume; free-tier disk eligibility may block public URL) |
+
+---
+
+## M9 — Testing doc + edge UX / export / images
+
+| | |
+|---|---|
+| **ID** | M9 |
+| **Objective** | Edge-case testing suite + polish gaps (ADR-017) |
+| **Scope** | `docs/TESTING.md`; source error/honesty UX; draft read/Edit + Headline normalize; live metrics; og:image + upload; Markdown + PDF export |
+| **Tasks** | Author TESTING.md; ADR-017; schema `image_url`; upload APIs; Draft/Writing export; client `computeMetrics`; tests |
+| **Files** | `docs/TESTING.md`, sources/draft/writing stages, `lib/uploads/*`, `lib/export/*`, `drizzle/0001_*` |
+| **Dependencies** | M8, ADR-017 |
+| **Deliverables** | Testing doc; export buttons; image on sources; live metrics |
+| **Tests** | ingest/og/normalize/upload/metrics unit tests; `npm test`; `npm run build` |
+| **Acceptance** | ADR-017 behaviors present; no invented body on fetch fail |
+| **DoD** | PROGRESS M9 verification log filled |
+| **Risks** | PDF layout is text-oriented (not pixel-perfect Writing chrome) |
 
 ---
 

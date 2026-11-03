@@ -1,12 +1,12 @@
 # Page override: Editorial Workspace
 
-Overrides `MASTER.md` for the main app shell (Sources / Research / Draft / Writing).
+Overrides `MASTER.md` for the main app shell (Sources / Research / Compose — ADR-019).
 
 ## Layout
 
 - Sticky top bar: brand (“This Week in AI” + Studio) + **stage nav pills** + theme toggle + project title  
 - Main column: active stage content (max-width ~1440px)  
-- Writing: control deck + manuscript + **metrics rail** (hidden in Focus mode)  
+- Compose Writing assist: control deck + manuscript + **metrics rail**  
 - No Export, Publishing Checklist, profile avatar, or Live Sync chrome  
 
 ## Stage-specific
@@ -22,16 +22,12 @@ Overrides `MASTER.md` for the main app shell (Sources / Research / Draft / Writi
 - Markdown display for narrative fields; Edit toggles textareas  
 - Angle cards; Continue / Full regenerate  
 
-### Draft
-- Mode toggle: Starter draft | Outline only  
-- Section panels with Preview MD / Edit + terracotta Regenerate  
-- Primary CTA: **Analyze writing**
-
-### Writing assist
-- Inline highlights; **hover/tap popover** (explanation, rewrite, Accept/Reject) — no separate suggestion list  
-- Category filter chips (complex / passive / filler only)  
-- Compare + MD preview modes; Focus mode hides chrome/rail  
-- Metrics rail with explanations  
+### Compose
+- Before start: angle picker + **Blank canvas** | **Starter draft** (outline removed)  
+- After start: toolbar with Start over (returns to Blank/Starter), Drafting / Writing assist toggle, Add section, Analyze, exports  
+- Drafting: freeform section cards (title, purpose, content); add/remove; optional Generate this section  
+- Writing assist: inline highlights; hover/tap popover (Accept/Reject); compare + MD preview  
+- Live metrics rail in both modes; workingPlain uses real title as H1 (no `## Headline` label)
 
 ## Responsive
 

@@ -72,10 +72,9 @@ A This Week in AI newsletter editor who needs to separate facts from speculation
 ```text
 Sources (≥3 usable)
   → Research brief (facts vs analysis, evidence, angles)
-  → Draft (starter draft default, or outline-only)
-  → Optional per-section draft regenerate
-  → Writing Assistant (highlight → explain → rewrite → accept/reject)
-  → Compare original vs revised + metrics
+  → Compose: Blank canvas or Starter draft (ADR-019)
+  → Drafting (freeform sections) ↔ Writing assist (highlight / accept-reject)
+  → Compare original vs revised + live metrics
 ```
 
 ### Decisions and why
@@ -87,13 +86,13 @@ Sources (≥3 usable)
 | vs Mongo/NoSQL | **Rejected for MVP** (ADR-011) | Nested LLM JSON ≠ document-DB product; we still need relational source↔claim links |
 | Sources | **URL + paste mixed** (ADR-003) | Articles fetch+extract; failures → paste; never invent body text |
 | Tweets | **Optional X API; else paste** (ADR-003, ADR-011) | No reliable free official tweet API; scraping is brittle/ToS-risky |
-| Brief → draft | **Starter draft default + outline-only** (ADR-004) | Fast path for Part C; editors who want control can outline |
+| Brief → compose | **Blank canvas or Starter draft** (ADR-019; supersedes ADR-004 outline) | Editors choose empty canvas vs AI starter; Change angle clears body |
 | Per-section regen | **Draft sections only** (ADR-008) | Improves the article; Writing Assistant handles sentence-level edits |
 | Writing checks | **Hybrid:** complex / passive / filler (ADR-005) | Deterministic detect + LLM explain/rewrite; metrics are informational |
 | Hemingway | **Inspired, not a clone** | Inline highlights + categories + metrics; plus accept/reject (PRD) |
 | LLM | **Gemini only** (ADR-010) | Keys available; structured output; Groq deferred (no dual-provider abstraction) |
 | App stack | **Next.js + Tailwind** (ADR-010) | One TypeScript monolith; fast delivery |
-| UI design | **Atelier Editorial / Nocturne** (ADR-016) | Newsreader + Literata + Space Mono; light+dark; no Export/Checklist fake chrome |
+| UI design | **Atelier Editorial / Nocturne** (ADR-016/017) | Newsreader + Literata + Space Mono; light+dark; Markdown + PDF export; og/upload images |
 | Deploy | **Docker + SQLite volume** (ADR-006, ADR-015) | Same image locally (Compose) and on Render (+ disk); avoid Vercel+file SQLite |
 | Explicitly out | Auth, cloud multi-project, brief section regen, multi-agent frameworks, jargon-as-4th-check | Keeps a small tool done well |
 
@@ -159,8 +158,8 @@ Sources (≥3 usable)
 | Navigable workspace shell (stage stepper + placeholders) | **Verified (M2)** |
 | Mixed source ingest (URL + paste; optional X; SSRF-safe) | **Verified (M3)** |
 | Research brief + evidence attribution | **Verified (M4)** — unit/mocked; live Gemini optional |
-| Starter draft / outline + section regen | **Verified (M5)** — unit/mocked; live Gemini optional |
-| Writing Assistant (3 checks, accept/reject, metrics) | **Verified (M6)** — unit/mocked; live Gemini optional |
+| Compose: Blank/Starter, freeform sections, writing assist | **Verified (ADR-019)** — unit/mocked; live Gemini optional |
+| Writing Assistant (6 checks, accept/reject, metrics) | **Verified (M6/M10)** — unit/mocked; live Gemini optional |
 | Sample editorial + before/after artifacts | **Verified (M7)** — live Gemini J1–J3 capture |
 | Docker + SQLite self-host | **Verified (M8)** Compose smoke; public Render URL blocked without account/disk |
 
@@ -184,7 +183,7 @@ Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHE
 **AI vs deterministic**
 
 - **Deterministic:** URL fetch/SSRF guards, Readability extract, writing detectors, metrics, suggestion overlap rules  
-- **AI (Gemini):** research brief, draft/outline/section gen, explain + rewrite suggestions  
+- **AI (Gemini):** research brief, starter/section gen, explain + rewrite suggestions  
 
 ---
 
@@ -243,7 +242,7 @@ npm run start
 
 ### 5. Database
 
-`DATABASE_PATH` defaults to `./data/editorial.db`. On first DB open (e.g. `GET /api/projects/current`), Drizzle migrations under `drizzle/` apply automatically and a default project is bootstrapped if none exists. Do not commit `*.db` files.
+`DATABASE_PATH` defaults to `./data/editorial.db`. On first DB open (e.g. `GET /api/projects/current`), Drizzle migrations under `drizzle/` apply automatically and a default project is bootstrapped if none exists. Source image uploads are stored under `{dirname(DATABASE_PATH)}/uploads/` (e.g. `./data/uploads` or `/data/uploads` on Render). Do not commit `*.db` or upload binaries.
 
 ```bash
 # optional: regenerate SQL after schema edits
@@ -330,9 +329,8 @@ Only if you insist on Vercel: move persistence to **Turso/libSQL** (or similar) 
 
 1. **Sources** — Add at least three articles/URLs (and/or pasted content). Fix any `needs_content` via paste.  
 2. **Research** — Generate the brief. Review facts vs analysis, evidence links, angles. Edit lightly or full-regenerate.  
-3. **Draft** — Pick an angle. Generate **starter draft** (default) or **outline only**. Regenerate weak **draft sections** if needed.  
-4. **Writing** — Analyze. Review highlights and suggestions. Accept/reject individually. Compare original vs revised. Check metrics (informational, not a score to grind).  
-5. **Ship artifacts** — Export/copy final ~300–500 word piece + before/after for submission docs.
+3. **Compose** — Pick an angle, then **Blank canvas** or **Starter draft**. Edit freeform sections (add/remove/generate). Toggle **Writing assist** to analyze, accept/reject, and compare. Change angle clears the body and returns to Blank/Starter.  
+4. **Ship artifacts** — Export/copy final ~300–500 word piece + before/after for submission docs.
 
 ---
 

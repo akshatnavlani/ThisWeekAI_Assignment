@@ -219,7 +219,7 @@ After the research brief and newsletter angles exist, how does the user create t
 
 ### Consequences
 
-- Draft generation API/prompt variants: `starter_draft` | `outline_only`.
+- Draft generation API/prompt variants: `starter_draft` | `outline_only` (**superseded by ADR-019**: Blank canvas + Starter only; `outline_only` rejected).
 - Writing Assistant must work equally well on AI-starter and human-written drafts.
 - Sample deliverable will use the default starter-draft path, then Writing Assistant before/after.
 
@@ -777,3 +777,96 @@ M8 needed a reproducible host path for the same Next.js App Router process (UI +
 - ADR-010 typography/palette and prior MASTER cool-slate guidance are **superseded for UI**.
 - Design-system docs and AGENTS.md font line updated to match.
 - Warm parchment + terracotta is intentional for this product (example-driven), not a generic AI landing cliché.
+
+---
+
+## ADR-017: Draft read/edit, live metrics, images, MD+PDF export
+
+- **Decision ID:** ADR-017
+- **Date:** 2026-11-03
+- **Status:** Approved (implementing)
+- **Phase:** M9 — testing + edge UX
+- **Partially supersedes:** ADR-016 “Explicit skips: Export”
+
+### Context
+
+Product owner asked for edge-case testing coverage plus: clearer source-error UX; honesty about wrong facts in sources; draft read mode with Edit (vs always-open section textareas); Headline label redundancy fix; live deterministic metrics; images in sources/final output; Markdown + PDF export.
+
+### Decision
+
+1. **Draft UX:** Fixed Part C sections remain (ADR-008). Default **read** mode per section with **Edit** to open the editor; Regenerate stays. Headline shows content as display title with a subtle section label — strip duplicate `## Headline` / leading `#` from model content on normalize.
+2. **Live metrics:** Client and server both use `computeMetrics` / Flesch Reading Ease. Metrics are never model-supplied. Shown live on Draft and Writing without waiting for analyze.
+3. **Images:** (a) Extract `og:image` / `twitter:image` on article ingest into `sources.image_url` (and keep og in `raw_meta_json`). (b) Allow per-source upload (JPEG/PNG/WebP, max 2 MB) under `{dirname(DATABASE_PATH)}/uploads/{projectId}/`; served via `/api/uploads/...`. Upload wins display when set. No OCR / vision.
+4. **Export:** Copy Markdown + download `.md` of `workingPlain`; optional brief Markdown; **PDF** via client-side jspdf (no Puppeteer). Remote images best-effort.
+5. **Wrong facts:** No fact-checker. Honesty copy that corpus is trusted as given; keep never-invent-body and `sourceIds` grounding.
+6. **Testing:** `docs/TESTING.md` is the edge-case suite for M9.
+
+### Consequences
+
+- Export controls appear on Draft/Writing (atelier-safe; still no Publishing Checklist).
+- Schema adds `sources.image_url`.
+- Docker/Render must persist the uploads directory beside the SQLite file on the data volume.
+
+---
+
+## ADR-018: Expanded writing checks (jargon, adverb, weasel)
+
+- **Decision ID:** ADR-018
+- **Date:** 2026-11-03
+- **Status:** Approved (implementing)
+- **Phase:** M10 — writing checks expansion
+- **Supersedes:** ADR-005 “Deferred: unexplained jargon”; ADR-016 “Explicit skips: jargon check” for Writing assist
+
+### Context
+
+MVP shipped three hybrid checks (complex, passive, filler). Product owner requested jargon and related clarity checks while keeping deterministic detection + LLM rewrite.
+
+### Decision
+
+**Six writing categories** (hybrid detect → LLM explain/rewrite):
+
+1. complex  
+2. jargon — unexplained acronyms + curated buzzwords (allowlist + ±120 gloss window)  
+3. passive  
+4. adverb — weak intensifying `-ly` words  
+5. filler  
+6. weasel — hedge / fog phrases  
+
+**Overlap priority:** `complex > jargon > passive > adverb > filler > weasel`
+
+**Still deferred:** discourse/paragraph cohesion, style transfer, auto-allowlist from sources, LLM-only jargon judgment.
+
+### Consequences
+
+- `SUGGESTION_CATEGORIES` and Writing filter chips expand to six.
+- New detectors under `lib/writing/detect{Jargon,Adverb,Weasel}.ts`.
+- Highlight tokens for the three new categories in light/dark themes.
+
+---
+
+## ADR-019: Compose stage (merge Draft + Writing)
+
+- **Decision ID:** ADR-019
+- **Date:** 2026-11-03
+- **Status:** Approved (implementing)
+- **Phase:** Compose UX
+- **Supersedes:** separate Draft/Writing stages; `outline_only` draft mode; fixed six `section_key` enum as product lock
+
+### Context
+
+Draft and Writing duplicated export/metrics chrome. Outline vs starter was prompt-only and often indistinguishable. Fixed Part C sections blocked add/remove. Writing MD preview showed `## Headline` as a labeled heading over the real title.
+
+### Decision
+
+1. **Nav stages:** `sources | research | compose` (legacy `draft`/`writing` coerce to `compose`).
+2. **Start:** Blank canvas or Starter draft only — **drop Outline**.
+3. **Freeform sections:** `section_key` is a slug/uuid; each section has `title`, `purpose`, `content`.
+4. **Change angle:** confirm → clear sections + suggestions → re-offer Blank/Starter (brief kept).
+5. **Compose modes (client):** Drafting vs Writing assist; live metrics always on.
+6. **`workingPlain`:** Headline serializes as `# {title text}`; other sections as `## {title}` + body (no `## Headline` wrapper label).
+
+### Consequences
+
+- New APIs: `/api/draft/blank`, `/api/draft/change-angle`, `POST/DELETE` sections.
+- Starter LLM schema allows dynamic sections; classic newsletter keys remain the default prompt shape.
+- UI: single `ComposeStage` replaces `DraftStage` + `WritingStage`.

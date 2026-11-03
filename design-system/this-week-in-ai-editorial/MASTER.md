@@ -21,7 +21,7 @@
 
 ## Product override note (important)
 
-Workspace UI follows **Atelier Editorial** (light) and **Atelier Nocturne** (dark) from `UI_Example/` (ADR-016). Product flow remains Sources → Research → Draft → Writing. Fake Export / Publishing Checklist / profile / jargon detector are **not** product surfaces.
+Workspace UI follows **Atelier Editorial** (light) and **Atelier Nocturne** (dark) from `UI_Example/` (ADR-016). Product flow: Sources → Research → Compose (ADR-019). Fake Export / Publishing Checklist / profile chrome are **not** product surfaces.
 
 ---
 

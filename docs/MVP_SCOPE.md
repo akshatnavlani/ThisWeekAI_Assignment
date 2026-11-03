@@ -19,10 +19,10 @@ A This Week in AI newsletter editor (or FDE evaluating that workflow) who needs 
 3. Ingest & extract content (with failure → paste recovery)  
 4. Generate structured research brief (facts vs analysis, evidence links, angles)  
 5. Optionally edit brief; optionally full-regenerate brief  
-6. Select angle → generate **starter draft** (default) or **outline only**  
-7. Optionally regenerate individual **draft sections**  
-8. Run Writing Assistant (highlights, explanations, rewrites, accept/reject)  
-9. Compare original vs revised; review metrics  
+6. Compose: select angle → **Blank canvas** or **Starter draft** (ADR-019; outline removed)  
+7. Drafting: add/remove/edit freeform sections; optional per-section generate  
+8. Writing assist mode: highlights, explanations, rewrites, accept/reject  
+9. Compare original vs revised; review live metrics  
 10. Export/use sample editorial + before/after for submission artifacts  
 
 ## In scope
@@ -30,12 +30,13 @@ A This Week in AI newsletter editor (or FDE evaluating that workflow) who needs 
 | Area | Capability |
 |---|---|
 | Workspace | Single local durable project (no auth); optional tiny recent-projects list later if cheap |
-| Sources | Mixed URL + paste; article fetch/extract; tweet URL optional X enrichment; ≥3 usable sources gate |
-| Research | Structured brief; facts vs analysis; source links; ≥1 newsletter angle; evidence-oriented claims |
+| Sources | Mixed URL + paste; article fetch/extract; tweet URL optional X enrichment; ≥3 usable sources gate; og:image + optional image upload (ADR-017) |
+| Research | Structured brief; facts vs analysis; source links; ≥1 newsletter angle; evidence-oriented claims; honesty that sources are not fact-checked |
 | Brief tooling | View, light edit, full regenerate |
-| Drafting | Angle → starter draft or outline-only; labeled AI-assisted starter |
-| Draft tooling | Per-section regenerate for fixed Part C sections |
-| Writing | 3 checks (complex sentences, passive, filler); inline highlights; explain + rewrite; accept/reject; original preserved; compare; metrics + explanations |
+| Compose | Merged Draft+Writing (ADR-019); Blank or Starter; Change angle clears body |
+| Draft tooling | Freeform sections (title + purpose); add/remove; per-section generate; live metrics |
+| Writing assist | 6 checks (ADR-018); highlights; accept/reject; compare; same Compose stage |
+| Export | Copy/download Markdown; download PDF (ADR-017) |
 | Delivery | Local-first; free-tier deploy after E2E works |
 | Submission | Sample 300–500 word piece; before/after; README; product/engineering note |
 
@@ -45,7 +46,8 @@ A This Week in AI newsletter editor (or FDE evaluating that workflow) who needs 
 - Publishing / CMS / email send  
 - Per-section regenerate on the research brief  
 - Hemingway feature-parity (exact colors, adverb-only category, clone UX)  
-- Hard “unexplained jargon” as a fourth writing check  
+- Hard LLM-only jargon judgment / auto-allowlist from sources (deterministic jargon check ships per ADR-018)  
+
 - Multi-agent orchestration frameworks as a default  
 - Provider abstraction for hypothetical future LLMs beyond what’s needed for Gemini/Groq choice  
 - Real-time collaboration  
