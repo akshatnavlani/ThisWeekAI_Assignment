@@ -1,399 +1,188 @@
-# AI Editorial Workspace — This Week in AI
+# This Week in AI — Editorial Workspace
 
-Walkthrough README for the [FDE Intern Take Home Assignment](./FDE%20Intern%20Take%20Home%20Assignment%20_%20This%20Week%20in%20AI.md) submission (see **§10 Submissions**: Solution Live Link, GitHub Link, and a README that covers product decisions and why).
+Take-home for the [FDE Intern assignment](./FDE%20Intern%20Take%20Home%20Assignment%20_%20This%20Week%20in%20AI.md).
 
-| Status | Detail |
-|---|---|
-| **Plan** | Approved (2026-11-02) |
-| **Application code** | **M0–M8** + Atelier UI (ADR-016 light/dark, MD display, hover suggestions) |
-| **Screenshots / live URL** | UI via local/Compose; **public Render URL BLOCKED** pending Render account + persistent-disk plan (see Self-hosting) |
-
----
-
-## Quick navigation
-
-| Section | |
-|---|---|
-| [Submission links](#submission-links) | Live app + GitHub |
-| [Startup / Setup Guide](#startup--setup-guide) | Run on a new machine |
-| [Self-hosting](#self-hosting) | Free-tier deploy |
-| [Product decisions](#product-decisions) | What we chose and why |
-| [App screenshots](#app-screenshots) | UI walkthrough |
-| [Features](#features) | Implemented vs planned |
-| [Architecture](#architecture) | Stack summary |
-| [Usage guide](#usage-guide) | Sources → brief → draft → writing |
-| [Assignment deliverables](#assignment-deliverables) | PRD checklist |
-| [Engineering notes](#engineering-notes) | LLM, ingestion, limits |
-| [AI tools disclosure](#ai-tools-disclosure) | What AI did vs verified |
-| [Documentation index](#documentation-index) | Full design docs |
-
----
-
-## Submission links
-
-Per assignment **§10 Submissions**:
-
-| Item | Value |
-|---|---|
-| **Solution Live Link** | **BLOCKED (M8)** — no Render account/credentials in this environment; reproducible path is Docker Compose (below). Paste a Render URL here after blueprint deploy. |
-| **GitHub Link** | [akshatnavlani/ThisWeekAI_Assignment](https://github.com/akshatnavlani/ThisWeekAI_Assignment) |
-| **This README** | Product decisions, setup, Docker/Render self-hosting, screenshots |
-
-Also required by **§7 Deliverables** (linked below): working app or local setup, product/engineering note, sample editorial, before/after writing example.
-
----
-
-## Product overview
-
-**AI Editorial Workspace** helps This Week in AI editors go from raw URLs/articles/tweets to an evidence-backed research brief and a polished ~300–500 word newsletter draft — with Hemingway-inspired writing assistance that keeps the writer in control.
+A local-first workspace that takes messy sources and walks an editor through research, a newsletter draft, and sentence-level polish — without surrendering control of the prose.
 
 | | |
 |---|---|
-| **Primary user** | Newsletter editor (founders / builders / operators audience) |
-| **Core problem** | Finding sources is easy; discovering a *story worth telling* and turning it into clear, attributable writing is slow |
-| **Product shape** | One unified local project — not two disconnected tools |
+| **Live app** | [this-week-in-ai-editorial.onrender.com](https://this-week-in-ai-editorial.onrender.com) |
+| **Source** | [github.com/akshatnavlani/ThisWeekAI_Assignment](https://github.com/akshatnavlani/ThisWeekAI_Assignment) |
 
 ---
 
-## Product decisions
+## What this is for
 
-Full ADRs: [`docs/DECISIONS.md`](./docs/DECISIONS.md) · Scope: [`docs/MVP_SCOPE.md`](./docs/MVP_SCOPE.md)
+This Week in AI editors don’t struggle to find links. They struggle to find a *story* — something specific enough for founders and builders, grounded in sources, written clearly without sanding off the technical edge.
 
-### Who is the primary user?
+So the product is one continuous project, not two demos glued together:
 
-A This Week in AI newsletter editor who needs to separate facts from speculation, find an angle, and ship clear prose — without losing technical nuance.
+1. **Sources** — get usable text in (URL, paste, or both)
+2. **Research** — separate facts from analysis, keep evidence linked, surface angles
+3. **Compose** — draft the piece, then tighten sentences with accept/reject suggestions
 
-### What problem did we prioritize?
-
-**Story discovery + controlled drafting**, not a publishing CMS. The PRD values decision quality over feature count.
-
-### Core workflow
-
-```text
-Sources (≥3 usable)
-  → Research brief (facts vs analysis, evidence, angles)
-  → Compose: Blank canvas or Starter draft (ADR-019)
-  → Drafting (freeform sections) ↔ Writing assist (highlight / accept-reject)
-  → Compare original vs revised + live metrics
-```
-
-### Decisions and why
-
-| Decision | Choice | Why |
-|---|---|---|
-| Research ↔ Writing | **Unified project** (ADR-001) | Matches “raw info → polished draft”; sample editorial is a natural outcome |
-| Persistence | **Local SQLite** (ADR-002, ADR-011) | Survives refresh; zero cloud DB for MVP; JSON blobs fit columns/`JSON1` without Mongo ops |
-| vs Mongo/NoSQL | **Rejected for MVP** (ADR-011) | Nested LLM JSON ≠ document-DB product; we still need relational source↔claim links |
-| Sources | **URL + paste mixed** (ADR-003) | Articles fetch+extract; failures → paste; never invent body text |
-| Tweets | **Optional X API; else paste** (ADR-003, ADR-011) | No reliable free official tweet API; scraping is brittle/ToS-risky |
-| Brief → compose | **Blank canvas or Starter draft** (ADR-019; supersedes ADR-004 outline) | Editors choose empty canvas vs AI starter; Change angle clears body |
-| Per-section regen | **Draft sections only** (ADR-008) | Improves the article; Writing Assistant handles sentence-level edits |
-| Writing checks | **Hybrid:** complex / passive / filler (ADR-005) | Deterministic detect + LLM explain/rewrite; metrics are informational |
-| Hemingway | **Inspired, not a clone** | Inline highlights + categories + metrics; plus accept/reject (PRD) |
-| LLM | **Gemini only** (ADR-010) | Keys available; structured output; Groq deferred (no dual-provider abstraction) |
-| App stack | **Next.js + Tailwind** (ADR-010) | One TypeScript monolith; fast delivery |
-| UI design | **Atelier Editorial / Nocturne** (ADR-016/017) | Newsreader + Literata + Space Mono; light+dark; Markdown + PDF export; og/upload images |
-| Deploy | **Docker + SQLite volume** (ADR-006, ADR-015) | Same image locally (Compose) and on Render (+ disk); avoid Vercel+file SQLite |
-| Explicitly out | Auth, cloud multi-project, brief section regen, multi-agent frameworks, jargon-as-4th-check | Keeps a small tool done well |
-
-### How we’d measure usefulness
-
-- Brief surfaces a non-obvious angle from ≥3 sources  
-- Claims trace to real source links  
-- Suggestions are rejectable; originals never silently overwritten  
-- Sample piece is specific to founders/builders/operators — not a generic summary  
+If that path works, the sample editorial and before/after writing examples fall out of the tool instead of being invented afterward.
 
 ---
 
-## App screenshots
+## Walkthrough
 
-> **Status:** App UI not built yet. After implementation, drop PNGs into `docs/screenshots/` and replace the placeholders below. Suggested captures:
+### 1. Sources
 
-| # | Screen | File (planned) | What it shows |
-|---|---|---|---|
-| 1 | Sources | `docs/screenshots/01-sources.png` | Adding ≥3 URLs/pastes; status chips (`ready` / `needs_content`) |
-| 2 | Research brief | `docs/screenshots/02-research-brief.png` | Facts vs analysis, evidence links, newsletter angles |
-| 3 | Draft | `docs/screenshots/03-draft.png` | Sectioned starter draft; section regenerate; mode toggle |
-| 4 | Writing assist | `docs/screenshots/04-writing-assist.png` | Highlights, suggestion accept/reject, metrics |
-| 5 | Compare | `docs/screenshots/05-compare.png` | Original vs revised |
+Add at least three usable sources. Articles are fetched and extracted; if a site blocks us (paywall, bot wall, 403), the URL is kept for citation and you paste the body. We never invent article text on a failed fetch.
 
-### 1 — Sources
+Tweets are the awkward case. There’s no reliable free official read API for MVP, and scraping is brittle and ToS-risky. Optional `X_BEARER_TOKEN` enriches tweet URLs when present; otherwise paste the text and keep the URL.
 
-```text
-[ Screenshot placeholder: 01-sources.png ]
-```
+Sources can carry an og:image or an uploaded image for later export. Status chips make failures obvious (`ready` vs `needs_content`) so you aren’t guessing why research won’t start.
 
-### 2 — Research brief
+### 2. Research brief
 
-```text
-[ Screenshot placeholder: 02-research-brief.png ]
-```
+Once three sources are ready, generate a brief. The brief is structured on purpose:
 
-### 3 — Draft
+- **Facts vs analysis** — so the editor can see what the sources support versus what we’re inferring
+- **Evidence links** — claims store real `sourceIds`; the UI only links to sources that exist
+- **Angles** — one or more newsletter directions, not a generic “AI is changing everything” summary
 
-```text
-[ Screenshot placeholder: 03-draft.png ]
-```
+You can light-edit the brief or fully regenerate it. We deliberately did **not** build per-section regen on the brief — that complexity belongs in the draft, where rewriting a section actually ships words.
 
-### 4 — Writing assist
+Sources are treated as a corpus, not as verified truth. The UI is honest about that.
 
-```text
-[ Screenshot placeholder: 04-writing-assist.png ]
-```
+### 3. Compose
 
-### 5 — Original vs revised
+Pick an angle, then start from a **blank canvas** or a **starter draft**. Outline-only mode went away: it looked too much like a thin starter and confused the handoff.
 
-```text
-[ Screenshot placeholder: 05-compare.png ]
-```
+Compose is one stage with two modes:
+
+- **Drafting** — freeform sections (add, remove, reorder, optional generate-with-purpose). Live metrics sit alongside the canvas.
+- **Writing assist** — run the hybrid checks, review highlights, accept or reject rewrites, compare against the original snapshot.
+
+Changing the angle clears the body and suggestions (with confirmation) and returns you to Blank/Starter. The brief stays. That matches how editors actually pivot: keep the research, throw out the draft shape.
+
+Export Markdown or PDF when you’re done. 
 
 ---
 
-## Features
+## Product decisions (and why)
 
-| Feature | Status |
-|---|---|
-| Next.js scaffold + design tokens + empty shell | **Verified (M0)** |
-| SQLite schema + `GET`/`PATCH` `/api/projects/current` | **Verified (M1)** |
-| Navigable workspace shell (stage stepper + placeholders) | **Verified (M2)** |
-| Mixed source ingest (URL + paste; optional X; SSRF-safe) | **Verified (M3)** |
-| Research brief + evidence attribution | **Verified (M4)** — unit/mocked; live Gemini optional |
-| Compose: Blank/Starter, freeform sections, writing assist | **Verified (ADR-019)** — unit/mocked; live Gemini optional |
-| Writing Assistant (6 checks, accept/reject, metrics) | **Verified (M6/M10)** — unit/mocked; live Gemini optional |
-| Sample editorial + before/after artifacts | **Verified (M7)** — live Gemini J1–J3 capture |
-| Docker + SQLite self-host | **Verified (M8)** Compose smoke; public Render URL blocked without account/disk |
+Full ADRs live in [`docs/DECISIONS.md`](./docs/DECISIONS.md). The ones that shaped the submission:
 
-Only mark **Implemented** after the matching milestone is tested and verified (`docs/PROGRESS.md`).
+**One project, not two tools.**  
+The PRD asks for research *and* writing, and leaves the relationship open. A unified flow is a stronger product answer than a research paste-bin plus a separate Hemingway toy. The sample editorial becomes a natural output of the path, not a side quest. (ADR-001)
 
----
+**Local SQLite, no auth.**  
+Refresh mid-flow is a demo killer. A single durable project on disk survives that without cloud DB cost or fake multi-tenant scaffolding. Hosted multi-project was an explicit stretch we did not take. Nested LLM JSON in columns does not mean we needed Mongo. (ADR-002, ADR-011)
 
-## Architecture
+**Mixed ingest, paste as first-class recovery.**  
+Fetch+Readability covers a lot of articles. When it doesn’t, paste keeps the citation URL and the editor moving. Inventing body text on failure would poison the brief. (ADR-003)
 
-| Layer | Technology | Alternative considered | Reason |
-|---|---|---|---|
-| Frontend + API | Next.js App Router (TypeScript) | Vite + Express | One repo, less glue |
-| Database | SQLite file | Mongo, Postgres, Supabase | Local durable; simple; ADR-011 |
-| LLM | Gemini Flash-class | Groq dual-provider | Quality + structured JSON; less complexity |
-| Ingestion | Fetch + Readability | Headless browser / Firecrawl | Enough for MVP + paste fallback |
-| UI | Tailwind + design-system tokens | Heavy component kits | Editorial, not dashboard |
-| Deploy | Docker → Render (+ `/data` disk) | Vercel + file SQLite; cloud Postgres for MVP | ADR-015; keep SQLite |
+**Blank or Starter — then freeform sections.**  
+Fixed six-section Part C shapes blocked real editing. Editors need to add/remove/reorder, and generate only when they ask (purpose required only if Generate is checked). Drafting and writing share one Compose surface so export/metrics aren’t duplicated. (ADR-019)
 
-Details: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) · Schema: [`docs/SCHEMA.md`](./docs/SCHEMA.md)
+**Hybrid writing assist, not “optimize the Flesch score.”**  
+Detectors find spans (complex, jargon, passive, adverb, filler, weasel). Gemini explains and proposes rewrites. Overlaps resolve with a fixed priority. Accept/reject is human-gated; the original snapshot is preserved. Metrics are informational — readability scoring even strips markdown link URLs so a sources list doesn’t clamp Flesch to zero. (ADR-005, ADR-018)
 
-**AI vs deterministic**
+**Gemini only.**  
+Keys were available, structured JSON worked, and a dual-provider abstraction for a hypothetical Groq path would have been ceremony. (ADR-010)
 
-- **Deterministic:** URL fetch/SSRF guards, Readability extract, writing detectors, metrics, suggestion overlap rules  
-- **AI (Gemini):** research brief, starter/section gen, explain + rewrite suggestions  
+**Docker + SQLite volume for deploy.**  
+Same image locally (Compose) and on Render with a disk at `/data`. Vercel + file SQLite is a footgun on an ephemeral filesystem. One instance only — SQLite is not multi-replica safe. The public demo has **no auth**; treat the Gemini key as burnable. (ADR-015)
+
+**What we cut on purpose**  
+Auth,Multi Project support, multi-tenant cloud projects, brief section regen, LangChain/multi-agent frameworks,Inter/dark-glow “AI product” UI. The goal was a small tool that completes the editorial loop well.
 
 ---
 
-## Startup / Setup Guide
+## How we’d judge if it worked
 
-> **Honesty note:** M0–M7 verified on 2026-11-03 (install/test/build + live Gemini J1–J3). M8 (2026-11-03): `docker compose build` + `GET /api/projects/current` against the container **PASS**; public Render live URL **BLOCKED** (no Render login in this environment / persistent disk needs an eligible plan). Use a Flash-class `GEMINI_MODEL` that supports `generateContent` (not Live/WebSocket-only IDs). Tweet URL auto-fetch needs optional `X_BEARER_TOKEN`; otherwise paste.
+- The brief surfaces an angle you couldn’t get from one source alone  
+- Claims open real source links  
+- Bad writing suggestions are easy to reject; nothing silently rewrites the draft  
+- The finished piece sounds like something founders/builders would actually read
 
-### Prerequisites (new machine)
+Artifacts from that bar:
 
-- **Node.js 20+** (verified with Node 24 / npm) — for local `npm run dev`  
-- **Docker Desktop** (or Docker Engine + Compose v2) — for the M8 deploy path  
-- **npm** (lockfile: `package-lock.json`)  
-- **Google AI Studio** API key ([Gemini](https://aistudio.google.com/)) — needed from M4 onward  
-- Git  
-- (Optional) X/Twitter bearer token for tweet URL auto-fetch  
+- Product & engineering note — [`docs/PRODUCT_ENGINEERING_NOTE.md`](./docs/PRODUCT_ENGINEERING_NOTE.md)
+- Sample editorial — [`docs/sample-editorial.md`](./docs/sample-editorial.md)
+- Before / after writing — [`docs/before-after-writing.md`](./docs/before-after-writing.md)
 
-### 1. Clone
+---
+
+## Run it locally
+
+**Needs:** Node 20+, npm, a Gemini API key from [Google AI Studio](https://aistudio.google.com/). Use a Flash-class model that supports `generateContent` (not Live/WebSocket-only IDs).
 
 ```bash
 git clone git@github.com:akshatnavlani/ThisWeekAI_Assignment.git
 cd ThisWeekAI_Assignment
-```
-
-### 2. Environment
-
-```bash
 cp .env.example .env
-```
-
-Edit `.env`:
-
-| Variable | Required | Purpose |
-|---|---|---|
-| `GEMINI_API_KEY` | **Yes** | Gemini API access |
-| `GEMINI_MODEL` | **Yes** | Flash-class model ID from AI Studio (do not use shut-down 2.0 Flash IDs) |
-| `DATABASE_PATH` | No | SQLite path; default `./data/editorial.db` |
-| `X_BEARER_TOKEN` | No | Optional tweet lookup; without it, paste tweet text |
-
-**Never commit `.env` or real API keys.**
-
-### 3. Install & run (development)
-
-```bash
+# set GEMINI_API_KEY and GEMINI_MODEL
 npm install
 npm run dev
 ```
 
-Open the URL printed by Next.js (typically `http://localhost:3000`).
+Open the URL Next prints (usually `http://localhost:3000`).
 
-### 4. Production build (local)
+| Variable | Required | Notes |
+|---|---|---|
+| `GEMINI_API_KEY` | Yes | Server-side only |
+| `GEMINI_MODEL` | Yes | Flash-class `generateContent` model |
+| `DATABASE_PATH` | No | Default `./data/editorial.db` |
+| `X_BEARER_TOKEN` | No | Tweet URL enrichment; otherwise paste |
 
-```bash
-npm run build
-npm run start
-```
-
-### 5. Database
-
-`DATABASE_PATH` defaults to `./data/editorial.db`. On first DB open (e.g. `GET /api/projects/current`), Drizzle migrations under `drizzle/` apply automatically and a default project is bootstrapped if none exists. Source image uploads are stored under `{dirname(DATABASE_PATH)}/uploads/` (e.g. `./data/uploads` or `/data/uploads` on Render). Do not commit `*.db` or upload binaries.
+SQLite and uploads live under `data/` (gitignored). Migrations run on first open.
 
 ```bash
-# optional: regenerate SQL after schema edits
-npm run db:generate
-
-# unit/integration tests (temp SQLite files)
 npm test
+npm run build && npm run start
 ```
 
-Quick API check while `npm run dev` is running:
-
-```bash
-curl http://localhost:3000/api/projects/current
-```
-
-### Troubleshooting (planned)
-
-| Symptom | What to check |
-|---|---|
-| App won’t start / missing key | `GEMINI_API_KEY` set in `.env`; restart dev server |
-| Brief generate blocked | Need **≥3 sources** with status `ready` (usable content) |
-| URL fetch failed | Paywall/bot block → use **paste** for that source; URL kept for citation |
-| Tweet URL empty | Set `X_BEARER_TOKEN` or paste tweet text |
-| Gemini 429 | Rate limit — wait/retry; reduce regen spam; check AI Studio quotas |
-| DB locked / missing | Ensure `data/` writable; delete DB only if you accept data loss |
-
----
-
-## Self-hosting
-
-Goal (ADR-006 / ADR-015): **local E2E first**, then the **same Docker image** on Render with a **persistent disk** for SQLite. Backend remains Next.js `app/api/**` — Docker only packages that process.
-
-**Not recommended:** Vercel serverless + local SQLite file (ephemeral filesystem — data won’t stick).
-
-### Local Docker (verified M8)
-
-Requires a `.env` with at least `GEMINI_API_KEY` and a Flash-class `GEMINI_MODEL` for AI routes. Compose forces `DATABASE_PATH=/data/editorial.db` onto the `./data` bind mount.
+### Docker (same path as production)
 
 ```bash
 docker compose up --build
-# App: http://localhost:3000  (or set PORT=3005 if 3000 is taken)
-# Smoke: GET http://localhost:3000/api/projects/current
+# http://localhost:3000 — SQLite on ./data via DATABASE_PATH=/data/editorial.db
 ```
 
-Stop with `docker compose down`. The SQLite file persists under `./data/` (gitignored).
-
-**Verified (2026-11-03):** image build **PASS**; container `GET /api/projects/current` → **200**.
-
-### Render (Docker + disk)
-
-Blueprint: [`render.yaml`](./render.yaml).
-
-1. Push this repo to GitHub.  
-2. In Render: **New → Blueprint** (or Web Service → Docker) from the repo.  
-3. Confirm **persistent disk** mount `/data` (required for SQLite). Free/hobby plans may not allow disks — use an eligible plan or stay on Compose (ADR-006).  
-4. Set env in the dashboard: `GEMINI_API_KEY`, `GEMINI_MODEL` (Flash-class), optional `X_BEARER_TOKEN`. `DATABASE_PATH=/data/editorial.db` is set in the blueprint.  
-5. Deploy **one** instance only (SQLite is not multi-replica safe).  
-6. Smoke-test: `GET /api/projects/current`, then sources → brief → draft → analyze.  
-7. Put the public URL in [Submission links](#submission-links).
-
-**Live URL status:** **BLOCKED** in this implementation environment (no Render credentials). Config + local Compose path are complete.
-
-### Troubleshooting (Docker / Render)
-
-| Symptom | What to try |
-|---|---|
-| Port 3000 in use | `PORT=3005 docker compose up` (maps host 3005 → container 3000) |
-| `better-sqlite3` / native errors | Rebuild **inside** Linux image (`docker compose build --no-cache`); never copy Windows `node_modules` into the image |
-| Empty / reset DB on host | Disk not mounted or wrong `DATABASE_PATH`; confirm `/data` volume |
-| Long Gemini requests time out | Host request timeout; retry; prefer Flash-class model; local Compose has fewer limits |
-| Health check fails | Ensure migrate-on-open can write `/data`; check Render logs |
-
-### Security note for public demos
-
-MVP has **no auth**. Anyone with the URL can use the workspace and your server-side Gemini quota. For a take-home demo: use a throwaway key, rate-limit if needed, or shut down after review. Disclose this in the product note.
-
-### Alternative: Vercel + Turso
-
-Only if you insist on Vercel: move persistence to **Turso/libSQL** (or similar) instead of a local file. That is a deliberate extra dependency — not the default plan (ADR-015 keeps SQLite + Docker).
+Render blueprint: [`render.yaml`](./render.yaml). Attach a persistent disk at `/data`, set the Gemini env vars in the dashboard, run a **single** instance.
 
 ---
 
-## Usage guide
+## Stack in one glance
 
-1. **Sources** — Add at least three articles/URLs (and/or pasted content). Fix any `needs_content` via paste.  
-2. **Research** — Generate the brief. Review facts vs analysis, evidence links, angles. Edit lightly or full-regenerate.  
-3. **Compose** — Pick an angle, then **Blank canvas** or **Starter draft**. Edit freeform sections (add/remove/generate). Toggle **Writing assist** to analyze, accept/reject, and compare. Change angle clears the body and returns to Blank/Starter.  
-4. **Ship artifacts** — Export/copy final ~300–500 word piece + before/after for submission docs.
-
----
-
-## Assignment deliverables
-
-Mapped to PRD **§7** and **§10**:
-
-| Deliverable | Location / status |
-|---|---|
-| Working application | Local setup (above); live link TBD |
-| Source code + README | This repo |
-| Product & engineering note | [`docs/PRODUCT_ENGINEERING_NOTE.md`](./docs/PRODUCT_ENGINEERING_NOTE.md) |
-| Sample editorial (300–500 words) | [`docs/sample-editorial.md`](./docs/sample-editorial.md) |
-| Before/after writing example | [`docs/before-after-writing.md`](./docs/before-after-writing.md) |
-| Setup + env vars | [Startup / Setup Guide](#startup--setup-guide) |
-| Live link | [Submission links](#submission-links) |
-| GitHub link | [Submission links](#submission-links) |
-
----
-
-## Engineering notes
-
-- **Evidence:** Claims carry `sourceIds` validated against stored sources; UI links only known URLs.  
-- **Failures:** Bad URLs → `needs_content` + paste; malformed LLM JSON → validate + limited retry + clear error.  
-- **Writing:** Detectors are unit-testable without network; LLM only for explanation/rewrite.  
-- **Known limits:** Extraction won’t beat paywalls; tweets need paste or X token; free-tier Gemini rate limits apply; deployed demo is unauthenticated.  
-
-More: [`docs/RISKS.md`](./docs/RISKS.md) · [`docs/TECHNICAL_REQUIREMENTS.md`](./docs/TECHNICAL_REQUIREMENTS.md)
-
----
-
-## AI tools disclosure
-
-| Area | Tools | Human responsibility |
+| Layer | Choice | Why |
 |---|---|---|
-| Planning / ADRs / architecture docs | Cursor agent | Review, decisions, approvals |
-| Design system seed | ui-ux-pro-max skill | Curated overrides (light editorial; no Inter/dark-glow) |
-| Implementation | TBD after authorization | Will list generated vs hand-written vs tested |
+| App | Next.js App Router + TypeScript | One TypeScript surface for UI and API |
+| DB | SQLite + Drizzle | Durable local state without a hosted DB |
+| LLM | Gemini | Structured JSON for brief/draft/rewrites |
+| Ingest | `fetch` + Readability | Good enough + paste fallback |
+| UI | Tailwind + Atelier tokens | Newsreader / Literata / Space Mono — editorial, not dashboard chrome |
+| Deploy | Docker → Render disk | Keep SQLite; avoid serverless filesystem traps |
 
-Update this section after each implementation milestone with what was **personally implemented, tested, and verified**.
+**AI does:** research brief, starter/section generation, explain + rewrite.  
+**Code does:** SSRF-safe fetch, extraction, detectors, overlap, metrics, accept/reject offsets, Zod validation of model JSON.
 
 ---
 
-## Documentation index
+## Assignment checklist
 
-| Doc | Purpose |
+| Deliverable | Where |
 |---|---|
-| [`docs/MVP_SCOPE.md`](./docs/MVP_SCOPE.md) | Approved MVP |
-| [`docs/DECISIONS.md`](./docs/DECISIONS.md) | ADR-001…011 |
-| [`docs/TECHNICAL_REQUIREMENTS.md`](./docs/TECHNICAL_REQUIREMENTS.md) | FR/NFR + API |
-| [`docs/DESIGN.md`](./docs/DESIGN.md) | UX |
-| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | System design |
-| [`docs/SCHEMA.md`](./docs/SCHEMA.md) | Data model |
-| [`docs/IMPLEMENTATION_PLAN.md`](./docs/IMPLEMENTATION_PLAN.md) | Milestones M0–M8 |
-| [`docs/RISKS.md`](./docs/RISKS.md) | Risks |
-| [`docs/PLANNING_AUDIT.md`](./docs/PLANNING_AUDIT.md) | Planning audit |
-| [`docs/PROGRESS.md`](./docs/PROGRESS.md) | Live progress |
-| [`design-system/this-week-in-ai-editorial/`](./design-system/this-week-in-ai-editorial/) | UI tokens |
-| [`AGENTS.md`](./AGENTS.md) | Agent instructions |
-| [Assignment PRD](./FDE%20Intern%20Take%20Home%20Assignment%20_%20This%20Week%20in%20AI.md) | Authoritative brief |
+| Working app | Live link above, or local / Docker setup |
+| Source + README | This repo |
+| Product & engineering note | [`docs/PRODUCT_ENGINEERING_NOTE.md`](./docs/PRODUCT_ENGINEERING_NOTE.md) |
+| Sample editorial | [`docs/sample-editorial.md`](./docs/sample-editorial.md) |
+| Before/after writing | [`docs/before-after-writing.md`](./docs/before-after-writing.md) |
 
 ---
 
-## License / course note
+## Deeper docs
 
-Take-home assignment for This Week in AI FDE Intern. Not production software.
+| Doc | What it’s for |
+|---|---|
+| [`docs/MVP_SCOPE.md`](./docs/MVP_SCOPE.md) | What’s in / out |
+| [`docs/DECISIONS.md`](./docs/DECISIONS.md) | ADRs |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | System shape |
+| [`docs/SCHEMA.md`](./docs/SCHEMA.md) | Data model |
+| [`docs/TESTING.md`](./docs/TESTING.md) | Edge cases we care about |
+| [`docs/PROGRESS.md`](./docs/PROGRESS.md) | Verification log |
+| [`docs/RISKS.md`](./docs/RISKS.md) | Known limits |
