@@ -11,9 +11,11 @@ import {
 } from "@/lib/db";
 import { ingestSource } from "@/lib/ingestion";
 import {
+  buildSourcesBlock,
   generateBriefForProject,
   NeedsSourcesError,
 } from "@/lib/research/generateBrief";
+import type { SourceDto } from "@/lib/types/source";
 
 function tempDbPath(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "editorial-m4-"));
@@ -62,6 +64,57 @@ function validBriefJson(ids: string[]) {
     ],
   });
 }
+
+function stubSource(
+  overrides: Partial<SourceDto> & Pick<SourceDto, "id" | "content" | "kind">,
+): SourceDto {
+  return {
+    projectId: "p1",
+    title: null,
+    url: null,
+    modality: "paste",
+    status: "ready",
+    errorMessage: null,
+    imageUrl: null,
+    rawMetaJson: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+describe("buildSourcesBlock", () => {
+  it("includes every source even when early articles are huge", () => {
+    const longArticle = "A".repeat(50_000);
+    const tweet = "Primary voice from the founder on X.";
+    const block = buildSourcesBlock([
+      stubSource({
+        id: "article-1",
+        kind: "article",
+        content: longArticle,
+        title: "Long essay",
+      }),
+      stubSource({
+        id: "article-2",
+        kind: "article",
+        content: longArticle,
+        title: "Another essay",
+      }),
+      stubSource({
+        id: "tweet-1",
+        kind: "tweet",
+        content: tweet,
+        title: "@founder — Founder",
+        url: "https://x.com/founder/status/1",
+      }),
+    ]);
+    expect(block).toContain("id: article-1");
+    expect(block).toContain("id: article-2");
+    expect(block).toContain("id: tweet-1");
+    expect(block).toContain("kind: tweet");
+    expect(block).toContain(tweet);
+  });
+});
 
 describe("generateBriefForProject", () => {
   it("throws NEEDS_SOURCES when fewer than 3 ready sources", async () => {

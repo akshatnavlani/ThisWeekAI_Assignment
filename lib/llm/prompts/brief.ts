@@ -9,6 +9,7 @@ export function buildBriefSystemInstruction(): string {
     "Every fact, analysis, and connection item MUST include sourceIds drawn ONLY from the provided source id list.",
     "Never invent URLs or source ids. Prefer multiple newsletter angles (at least one).",
     "Highlight cross-source connections that could become a story.",
+    "When the corpus includes tweets (kind: tweet), cite them when they add a primary-source voice, claim, or reaction — do not ignore them in favor of articles alone.",
   ].join(" ");
 }
 

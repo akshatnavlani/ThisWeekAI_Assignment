@@ -34,6 +34,8 @@ export class LlmOutputInvalidError extends Error {
 
 const MAX_SOURCE_CHARS = 1800;
 const MAX_TOTAL_CHARS = 6000;
+/** Floor so short sources (tweets) still get usable body under a crowded corpus. */
+const MIN_SOURCE_CHARS = 280;
 
 export function listUsableSources(sources: SourceDto[]): SourceDto[] {
   return sources.filter(
@@ -41,22 +43,30 @@ export function listUsableSources(sources: SourceDto[]): SourceDto[] {
   );
 }
 
+/**
+ * Include every usable source with a fair char budget.
+ * Older greedy packing filled the budget with early long articles and
+ * dropped later items (often tweets) from the model prompt entirely.
+ */
 export function buildSourcesBlock(sources: SourceDto[]): string {
-  let remaining = MAX_TOTAL_CHARS;
-  const parts: string[] = [];
-  for (const source of sources) {
-    if (remaining <= 0) break;
-    const body = source.content.trim().slice(0, Math.min(MAX_SOURCE_CHARS, remaining));
-    remaining -= body.length;
-    parts.push(
-      [
-        `id: ${source.id}`,
-        `title: ${source.title ?? "(untitled)"}`,
-        `url: ${source.url ?? "(none)"}`,
-        `content: ${body}`,
-      ].join("\n"),
-    );
-  }
+  if (sources.length === 0) return "";
+
+  const fairShare = Math.floor(MAX_TOTAL_CHARS / sources.length);
+  const perSource = Math.min(
+    MAX_SOURCE_CHARS,
+    Math.max(MIN_SOURCE_CHARS, fairShare),
+  );
+
+  const parts = sources.map((source) => {
+    const body = source.content.trim().slice(0, perSource);
+    return [
+      `id: ${source.id}`,
+      `kind: ${source.kind}`,
+      `title: ${source.title ?? "(untitled)"}`,
+      `url: ${source.url ?? "(none)"}`,
+      `content: ${body}`,
+    ].join("\n");
+  });
   return parts.join("\n\n---\n\n");
 }
 
