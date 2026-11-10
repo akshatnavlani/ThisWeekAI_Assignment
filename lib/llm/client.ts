@@ -32,6 +32,11 @@ export function getGeminiConfig(): { apiKey: string; model: string } {
       "GEMINI_MODEL is not set. Use a Flash-class model ID from Google AI Studio.",
     );
   }
+  if (/\blive\b|bidiGenerateContent|websocket/i.test(model)) {
+    throw new LlmSetupError(
+      `GEMINI_MODEL "${model}" looks like a Live/WebSocket-only ID. Use a Flash-class model that supports generateContent (e.g. gemini-3.5-flash-lite).`,
+    );
+  }
   return { apiKey, model };
 }
 
@@ -66,6 +71,15 @@ export function createGeminiJsonGenerator(
         /429|rate.?limit|quota|503|high demand|Unavailable/i.test(message)
       ) {
         throw new LlmRateLimitError(message);
+      }
+      if (
+        /only supports real-time bidirectional streaming|bidiGenerateContent|Gemini Live API|WebSocket/i.test(
+          message,
+        )
+      ) {
+        throw new LlmSetupError(
+          `GEMINI_MODEL "${modelName}" does not support generateContent. Set a Flash-class model ID (e.g. gemini-3.5-flash-lite) in the host env.`,
+        );
       }
       throw err;
     }
