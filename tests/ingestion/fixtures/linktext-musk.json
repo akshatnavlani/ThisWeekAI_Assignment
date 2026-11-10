@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "data": {
+    "text": "Next I’m buying Coca-Cola to put the cocaine back in",
+    "author": {
+      "name": "Elon Musk",
+      "username": "elonmusk",
+      "avatar": "https://pbs.twimg.com/profile_images/2103567689515954176/aR-Kjpp4_200x200.jpg"
+    },
+    "createdAt": "Thu Apr 28 00:56:58 +0000 2022",
+    "likes": 4172564,
+    "retweets": 573841,
+    "replies": 167104,
+    "comments": [],
+    "images": [],
+    "videos": [],
+    "url": "https://x.com/elonmusk/status/1519480761749016577"
+  }
+}

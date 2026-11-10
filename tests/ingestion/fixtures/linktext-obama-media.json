@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "data": {
+    "text": "Four more years. http://t.co/bAJE6Vom",
+    "author": {
+      "name": "Barack Obama",
+      "username": "BarackObama",
+      "avatar": "https://pbs.twimg.com/profile_images/1329647526807543809/2SGvnHYV_200x200.jpg"
+    },
+    "createdAt": "Wed Nov 07 04:16:18 +0000 2012",
+    "likes": 454553,
+    "retweets": 683964,
+    "replies": 46787,
+    "comments": [],
+    "images": [
+      "https://pbs.twimg.com/media/A7EiDWcCYAAZT1D.jpg?name=orig"
+    ],
+    "videos": [],
+    "url": "https://x.com/BarackObama/status/266031293945503744"
+  }
+}

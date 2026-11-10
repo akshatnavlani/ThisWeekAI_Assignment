@@ -1,18 +1,13 @@
 import { USER_AGENT } from "./constants";
 import { extractTweetId } from "./classify";
+import { fetchTweetViaLinktext } from "./linktextTweet";
+import { XTweetError, type TweetLookupResult } from "./tweetLookup";
 
-export type TweetLookupResult = {
-  id: string;
-  text: string;
-  authorId?: string;
-};
-
-export class XTweetError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "XTweetError";
-  }
-}
+export {
+  tweetDisplayTitle,
+  XTweetError,
+  type TweetLookupResult,
+} from "./tweetLookup";
 
 export async function fetchTweetByUrl(
   tweetUrl: string,
@@ -51,6 +46,41 @@ export async function fetchTweetByUrl(
   return {
     id: json.data.id,
     text: json.data.text.trim(),
+    provider: "x",
     authorId: json.data.author_id,
   };
+}
+
+/**
+ * Prefer official X when a bearer token exists; fall back to linktext extract.
+ */
+export async function fetchTweetWithFallback(
+  tweetUrl: string,
+  bearerToken: string | undefined = process.env.X_BEARER_TOKEN,
+  fetchImpl: typeof fetch = fetch,
+): Promise<TweetLookupResult> {
+  let lastError: Error | null = null;
+
+  if (bearerToken?.trim()) {
+    try {
+      return await fetchTweetByUrl(tweetUrl, bearerToken, fetchImpl);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+  }
+
+  try {
+    return await fetchTweetViaLinktext(tweetUrl, fetchImpl);
+  } catch (err) {
+    const linktextError =
+      err instanceof Error ? err : new Error(String(err));
+    if (lastError) {
+      throw new XTweetError(
+        `${lastError.message}; linktext: ${linktextError.message}`,
+      );
+    }
+    throw linktextError instanceof XTweetError
+      ? linktextError
+      : new XTweetError(linktextError.message);
+  }
 }

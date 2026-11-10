@@ -35,4 +35,11 @@ export {
   parseHttpUrl,
   SsrfError,
 } from "./ssrf";
-export { fetchTweetByUrl, XTweetError } from "./xTweet";
+export { fetchTweetViaLinktext, mapLinktextPayload } from "./linktextTweet";
+export {
+  fetchTweetByUrl,
+  fetchTweetWithFallback,
+  tweetDisplayTitle,
+  XTweetError,
+  type TweetLookupResult,
+} from "./xTweet";

@@ -31,7 +31,7 @@ If that path works, the sample editorial and before/after writing examples fall 
 
 Add at least three usable sources. Articles are fetched and extracted; if a site blocks us (paywall, bot wall, 403), the URL is kept for citation and you paste the body. We never invent article text on a failed fetch.
 
-Tweets are the awkward case. There’s no reliable free official read API for MVP, and scraping is brittle and ToS-risky. Optional `X_BEARER_TOKEN` enriches tweet URLs when present; otherwise paste the text and keep the URL.
+Tweets are the awkward case. Optional `X_BEARER_TOKEN` uses the official X API first; if that isn’t configured (or fails), we fall back to [linktext](https://linktext.vercel.app) extract for public tweet text, author, and images. If both fail, paste the text and keep the URL for citation.
 
 Sources can carry an og:image or an uploaded image for later export. Status chips make failures obvious (`ready` vs `needs_content`) so you aren’t guessing why research won’t start.
 
@@ -127,7 +127,7 @@ Open the URL Next prints (usually `http://localhost:3000`).
 | `GEMINI_API_KEY` | Yes | Server-side only |
 | `GEMINI_MODEL` | Yes | Flash-class `generateContent` model |
 | `DATABASE_PATH` | No | Default `./data/editorial.db` |
-| `X_BEARER_TOKEN` | No | Tweet URL enrichment; otherwise paste |
+| `X_BEARER_TOKEN` | No | Official X enrichment first; linktext then paste if missing/failing |
 
 SQLite and uploads live under `data/` (gitignored). Migrations run on first open.
 

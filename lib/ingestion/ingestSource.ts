@@ -11,7 +11,12 @@ import { extractMentionedUrls } from "./extractMentionedUrls";
 import { extractOgImage } from "./extractOgImage";
 import { FetchPageError, safeFetchPage } from "./fetchPage";
 import { SsrfError } from "./ssrf";
-import { fetchTweetByUrl, XTweetError } from "./xTweet";
+import {
+  fetchTweetWithFallback,
+  tweetDisplayTitle,
+  XTweetError,
+  type TweetLookupResult,
+} from "./xTweet";
 
 export type IngestInput = {
   url?: string | null;
@@ -52,7 +57,10 @@ export type IngestResult = {
 
 export type IngestDeps = {
   fetchPage?: typeof safeFetchPage;
-  fetchTweet?: typeof fetchTweetByUrl;
+  fetchTweet?: (
+    tweetUrl: string,
+    bearerToken?: string,
+  ) => Promise<TweetLookupResult>;
   xBearerToken?: string;
 };
 
@@ -66,7 +74,7 @@ export async function ingestSource(
   deps: IngestDeps = {},
 ): Promise<IngestResult> {
   const fetchPage = deps.fetchPage ?? safeFetchPage;
-  const fetchTweet = deps.fetchTweet ?? fetchTweetByUrl;
+  const fetchTweet = deps.fetchTweet ?? fetchTweetWithFallback;
   const url = trimOrNull(input.url ?? undefined);
   const paste = trimOrNull(input.content ?? undefined);
   const existing = trimOrNull(input.existingContent ?? undefined);
@@ -111,15 +119,19 @@ export async function ingestSource(
     };
   }
 
-  // Tweet path
+  // Tweet path — official X (optional) then linktext fallback
   if (kind === "tweet" || isTweetUrl(url)) {
     try {
       const tweet = await fetchTweet(url, deps.xBearerToken);
       const content = paste ? `${tweet.text}\n\n${paste}` : tweet.text;
+      const tweetImage = tweet.imageUrls?.[0] ?? null;
+      const imageUrl = existingImage?.startsWith("/api/uploads/")
+        ? existingImage
+        : resolveImage(imageHint, tweetImage, existingImage);
       return {
         kind: "tweet",
         url,
-        title: titleHint ?? `Tweet ${tweet.id}`,
+        title: titleHint ?? tweetDisplayTitle(tweet),
         content,
         modality: resolveModality({
           hasUrl: true,
@@ -128,12 +140,21 @@ export async function ingestSource(
         }),
         status: "ready",
         errorMessage: null,
-        imageUrl: resolveImage(existingImage, imageHint),
+        imageUrl,
         rawMetaJson: withMentions(
           {
-            provider: "x",
+            provider: tweet.provider,
             tweetId: tweet.id,
             authorId: tweet.authorId,
+            authorName: tweet.authorName,
+            authorUsername: tweet.authorUsername,
+            authorAvatar: tweet.authorAvatar,
+            imageUrls: tweet.imageUrls,
+            videos: tweet.videos,
+            createdAt: tweet.createdAt,
+            likes: tweet.likes,
+            retweets: tweet.retweets,
+            replies: tweet.replies,
           },
           content,
           url,

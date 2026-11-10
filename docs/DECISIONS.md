@@ -144,9 +144,13 @@ How should users add sources in the MVP, and should tweet URLs hard-depend on th
 
 - Every source supports: optional URL, optional pasted title/body, and a source kind (`article` | `tweet` | `other`).
 - Generic/article URLs: attempt fetch + content extraction; on failure, mark `needs_content` and allow paste.
-- Tweet/X URLs: if configured bearer token is present, attempt official post lookup by ID; otherwise require paste (URL retained for attribution).
+- Tweet/X URLs: if configured bearer token is present, attempt official post lookup by ID; otherwise (or on X failure) try **linktext** extract (`POST https://linktext.vercel.app/api/extract`); if that fails, require paste (URL retained for attribution).
 - Brief generation requires **≥3 sources with usable content**, not merely ≥3 URL strings.
-- Third-party tweet scrapers are out of scope for MVP.
+- HTML scraping of x.com remains out of scope; linktext is a narrow, documented fallback for tweet-by-URL only.
+
+### Amendment (2026-11-10)
+
+Product owner authorized linktext as a **fallback after** optional official X API so demos can ingest tweet text, author, and media without `X_BEARER_TOKEN`. Paste remains the last resort when both enrichment paths fail. `rawMetaJson.provider` is `"x"` | `"linktext"`.
 
 ### Rationale
 
@@ -154,6 +158,7 @@ How should users add sources in the MVP, and should tweet URLs hard-depend on th
 - Preserves a real ingestion path for articles (engineering signal).
 - Keeps demos reproducible without forcing every reviewer to set up X billing.
 - Allows X API if credentials are available without making it a hard dependency.
+- Linktext reduces paste friction for public tweets while keeping official X preferred when configured.
 
 ### Trade-offs
 
@@ -611,23 +616,23 @@ Revisit persistence and tweet-ingestion choices before implementation authorizat
 **Keep recommendations:**
 
 1. **SQLite** remains the MVP database (ADR-002 / ADR-010). Nested brief/draft JSON is stored as validated structures / JSON text; relational FKs for sources↔claims stay first-class. Mongo is explicitly rejected for MVP.
-2. **Tweets:** optional official X API when `X_BEARER_TOKEN` is set; otherwise **user paste** with URL retained for attribution (ADR-003). No HTML scraping and no third-party tweet scraper as a core path.
+2. **Tweets:** optional official X API when `X_BEARER_TOKEN` is set; then **linktext** extract fallback; then **user paste** with URL retained for attribution (ADR-003 amendment 2026-11-10). No HTML scraping of x.com.
 
 ### Rationale
 
 - JSON-shaped LLM output ≠ need for a document database; SQLite JSON + columns fit the actual access patterns.
 - Local-first + simple deploy path outweigh Mongo ergonomics for nested fields.
-- No reliable free official tweet-by-URL API; paste is honest and demo-safe.
+- Official free tweet-by-URL is unreliable; linktext + paste keep demos honest and runnable without X billing.
 
 ### Trade-offs
 
-- Manual paste friction for tweets without X credentials — accepted and documented in README.
+- Linktext is a third-party dependency (availability / rate limits) — accepted for MVP demos; paste still recovers.
 - Developers used to Mongo must map nested updates explicitly — acceptable at this scale.
 
 ### Consequences
 
 - No schema migration to Mongo planned.
-- Product/engineering note and README must state tweet paste fallback and rejection of scraping.
+- Product/engineering note and README must state X → linktext → paste cascade.
 - RISKS remain: R-02 (extraction), R-09 (X optional).
 
 ### Approval

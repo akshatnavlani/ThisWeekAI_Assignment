@@ -110,4 +110,82 @@ describe("ingestSource", () => {
     expect(result.status).toBe("ready");
     expect(result.content).toBe("Manual tweet paste body");
   });
+
+  it("maps linktext-style tweet lookup to ready source with author + image", async () => {
+    const result = await ingestSource(
+      {
+        url: "https://x.com/BarackObama/status/266031293945503744",
+        kind: "tweet",
+      },
+      {
+        fetchTweet: async () => ({
+          id: "266031293945503744",
+          text: "Four more years. http://t.co/bAJE6Vom",
+          provider: "linktext",
+          authorName: "Barack Obama",
+          authorUsername: "BarackObama",
+          authorAvatar:
+            "https://pbs.twimg.com/profile_images/1329647526807543809/2SGvnHYV_200x200.jpg",
+          imageUrls: [
+            "https://pbs.twimg.com/media/A7EiDWcCYAAZT1D.jpg?name=orig",
+          ],
+          likes: 454553,
+        }),
+      },
+    );
+    expect(result.status).toBe("ready");
+    expect(result.kind).toBe("tweet");
+    expect(result.modality).toBe("x_api");
+    expect(result.title).toBe("@BarackObama — Barack Obama");
+    expect(result.content).toContain("Four more years");
+    expect(result.imageUrl).toContain("pbs.twimg.com/media");
+    const meta = JSON.parse(result.rawMetaJson!) as {
+      provider: string;
+      mentionedUrls?: string[];
+      authorUsername?: string;
+    };
+    expect(meta.provider).toBe("linktext");
+    expect(meta.authorUsername).toBe("BarackObama");
+    expect(meta.mentionedUrls?.[0]).toContain("http://t.co/bAJE6Vom");
+  });
+
+  it("prefers mixed image hint over tweet media", async () => {
+    const result = await ingestSource(
+      {
+        url: "https://x.com/user/status/1234567890123456789",
+        kind: "tweet",
+        imageUrlHint: "https://cdn.example.com/from-paste.png",
+      },
+      {
+        fetchTweet: async () => ({
+          id: "1234567890123456789",
+          text: "Hello",
+          provider: "linktext",
+          authorUsername: "user",
+          imageUrls: ["https://pbs.twimg.com/media/tweet.jpg"],
+        }),
+      },
+    );
+    expect(result.imageUrl).toBe("https://cdn.example.com/from-paste.png");
+  });
+
+  it("prefers uploaded image over tweet media", async () => {
+    const result = await ingestSource(
+      {
+        url: "https://x.com/user/status/1234567890123456789",
+        kind: "tweet",
+        existingImageUrl: "/api/uploads/proj/photo.jpg",
+        imageUrlHint: "https://cdn.example.com/hint.png",
+      },
+      {
+        fetchTweet: async () => ({
+          id: "1234567890123456789",
+          text: "Hello",
+          provider: "linktext",
+          imageUrls: ["https://pbs.twimg.com/media/tweet.jpg"],
+        }),
+      },
+    );
+    expect(result.imageUrl).toBe("/api/uploads/proj/photo.jpg");
+  });
 });
